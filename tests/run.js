@@ -117,8 +117,8 @@ setTimeout(() => {
       setTimeout(() => {
         ok(pad.dataset.m === 'idle', 'returned to idle (mode=' + pad.dataset.m + ')');
         ok(!doc.getElementById('up').disabled, 'level buttons unlocked after run');
-        ok(doc.getElementById('res').classList.contains('on'), 'result panel shown');
-        ok(doc.getElementById('rHits').textContent.includes('/'), 'hits reported: ' + doc.getElementById('rHits').textContent);
+        ok(doc.getElementById('padPct').classList.contains('on'), 'result shown on the pad');
+        ok(window.__lastGrade.hits.includes('/'), 'hits reported: ' + window.__lastGrade.hits);
         const lane=[...doc.querySelectorAll('#score svg rect')].filter(r=>{
           const h=+r.getAttribute('height'); const y=+(r.getAttribute('y')||0);
           return h>3&&h<6&&y>60;});

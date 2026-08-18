@@ -69,11 +69,11 @@ async function perfectAttempt(){
   win.__advance(25);
   await sleep(90);
   return {
-    pct: parseInt(doc.getElementById('rPct').textContent),
-    bias: doc.getElementById('rBias').textContent,
-    cal: doc.getElementById('rCal').textContent,
-    sustain: doc.getElementById('rSus').textContent,
-    onsets: doc.getElementById('rHits').textContent,
+    pct: win.__lastGrade.pct,
+    bias: win.__lastGrade.bias,
+    cal: win.__lastGrade.cal,
+    sustain: win.__lastGrade.sustain,
+    onsets: win.__lastGrade.hits,
   };
 }
 
@@ -107,14 +107,14 @@ async function perfectAttempt(){
     await sleep(30);
   }
 
-  const firstBiasMs = Math.abs(parseInt(runs[0].bias)) || 0;
-  const lastBiasMs  = Math.abs(parseInt(runs[runs.length-1].bias)) || 0;
+  const firstBiasMs = Math.abs(runs[0].bias || 0);
+  const lastBiasMs  = Math.abs(runs[runs.length-1].bias || 0);
   ok(lastBiasMs < firstBiasMs,
      `measured bias shrinks as it calibrates (${firstBiasMs}ms → ${lastBiasMs}ms)`);
   ok(lastBiasMs <= 30, `final bias is small (${lastBiasMs}ms <= 30ms)`);
   ok(runs[runs.length-1].pct >= runs[0].pct,
      `score improves or holds for an accurate player (${runs[0].pct}% → ${runs[runs.length-1].pct}%)`);
-  const calNum = parseInt(runs[runs.length-1].cal);
+  const calNum = runs[runs.length-1].cal;
   ok(calNum > 40, `learned a meaningful latency offset (${calNum}ms)`);
 
   console.log('\n=== next button appears after success ===');

@@ -105,8 +105,8 @@ async function attempt(good){
   console.log('\n=== STATE: after a good attempt ===');
   click(G('nextBtn')); await sleep(40);
   await attempt(true);
-  st=state(); console.log('  ',JSON.stringify(st), ' score:',G('rPct').textContent);
-  const scored=parseInt(G('rPct').textContent);
+  st=state(); console.log('  ',JSON.stringify(st), ' score:',w.__lastGrade.pct+'%');
+  const scored=w.__lastGrade.pct;
   if(scored>=80){
     ok(st.suggest===true,'forward arrow highlighted as the suggested next move');
     ok(st.main==='Again','centre still allows a repeat');

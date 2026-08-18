@@ -107,10 +107,16 @@
     cursor:pointer;overflow:hidden;transition:background .15s,border-color .15s;
     touch-action:none;
   }
+  .pad-pct{display:none;font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;
+           font-size:46px;font-weight:600;letter-spacing:-.02em;touch-action:none;}
+  .pad-pct.on{display:block;}
+  .pad-pct.great{color:#1f8a4c;}
+  .pad-pct.good{color:#b07d10;}
+  .pad-pct.medium{color:#c0392b;}
   .pad-main{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#141418;
-            font-weight:600;transition:color .15s;text-align:center;}
+            font-weight:600;transition:color .15s;text-align:center;touch-action:none;}
   .pad-sub{font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;font-size:10px;letter-spacing:.06em;
-           color:#6d6d75;text-align:center;padding:0 8px;}
+           color:#6d6d75;text-align:center;padding:0 8px;touch-action:none;}
   .pad[data-m="count"]{background:#f7f7f5;}
   .pad[data-m="count"] .pad-main{font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;font-size:58px;
             letter-spacing:0;color:#141418;font-weight:500;}
@@ -153,29 +159,6 @@
     padding:8px 10px;cursor:pointer;
   }
   .promo-act #promoYes{background:#141418;color:#fff;border-color:#141418;font-weight:600;}
-
-  /* ---- result ---- */
-  .res{display:none;flex-direction:column;gap:9px;padding-top:16px;border-top:1px solid #d4d4ce;}
-  .res.on{display:flex;}
-  .res-hd{display:flex;align-items:baseline;justify-content:space-between;}
-  .res-pct{font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;font-size:26px;letter-spacing:-.02em;color:#141418;}
-  .res-note{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6d6d75;}
-  .res-row{display:flex;justify-content:space-between;font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;
-           font-size:10.5px;color:#6d6d75;letter-spacing:.04em;}
-  .res-row span:last-child{color:#141418;}
-  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding-top:4px;
-          font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;font-size:9px;color:#6d6d75;letter-spacing:.03em;}
-  .legend span{display:flex;align-items:center;gap:5px;}
-  .sw{width:12px;height:4px;display:inline-block;border-radius:1px;}
-  .sw.ok{background:#1f8a4c;}
-  .sw.warn{background:#b07d10;}
-  .sw.miss{background:transparent;border:1px dashed #c0392b;height:5px;}
-  .sw.ref{background:transparent;border:1px solid #9a9aa2;height:5px;}
-
-  footer{font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;font-size:9.5px;letter-spacing:.08em;
-         color:#9a9aa2;text-align:center;}
-  footer button{background:none;border:none;color:#6d6d75;font:inherit;
-                text-decoration:underline;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -213,6 +196,7 @@
   <div class="deck">
     <button class="nav" id="prevBtn" aria-label="previous pattern">‹</button>
     <div class="pad" id="pad" data-m="idle">
+      <div class="pad-pct" id="padPct"></div>
       <div class="pad-main" id="padMain">Begin</div>
       <div class="pad-sub" id="padSub">tap to start · swipe for another</div>
     </div>
@@ -232,26 +216,6 @@
     </div>
   </div>
 
-  <div class="res" id="res">
-    <div class="res-hd">
-      <div class="res-pct" id="rPct">—</div>
-      <div class="res-note" id="rNote"></div>
-    </div>
-    <div class="res-row"><span>onsets caught</span><span id="rHits">0/0</span></div>
-    <div class="res-row"><span>sustain correct</span><span id="rSus">0/0</span></div>
-    <div class="res-row"><span>spread</span><span id="rErr">—</span></div>
-    <div class="res-row"><span>tendency</span><span id="rBias">—</span></div>
-    <div class="res-row"><span>extra taps</span><span id="rExtra">0</span></div>
-    <div class="res-row"><span>auto latency fix</span><span id="rCal">0ms</span></div>
-    <div class="legend">
-      <span><i class="sw ok"></i>right length</span>
-      <span><i class="sw warn"></i>held wrong</span>
-      <span><i class="sw miss"></i>missed</span>
-      <span><i class="sw ref"></i>notated</span>
-    </div>
-  </div>
-
-  <footer>progress saved locally · <button id="reset">reset</button></footer>
 </div>
 
 <script>
@@ -754,11 +718,18 @@ function openVoice(freq, peak){
 const pad = document.getElementById('pad');
 const padMain = document.getElementById('padMain');
 const padSub  = document.getElementById('padSub');
+const padPct  = document.getElementById('padPct');
 const hearBtn = document.getElementById('hear');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const promoEl = document.getElementById('promo');
-const resEl   = document.getElementById('res');
+
+// The pad shows a result only right after an attempt; every other path
+// (starting a run, swiping to a new pattern) clears it.
+function clearResult(){
+  padPct.classList.remove('on','great','good','medium');
+  padPct.textContent = '';
+}
 
 let level = 1, bars = [], run = null, taps = [], launching = false;
 let calMs = 0;                 // learned output-latency compensation
@@ -838,7 +809,7 @@ function begin(kind){
     }
   }catch(e){}
   taps = [];
-  resEl.classList.remove('on');
+  clearResult();
   passed = false;
   renderScore(bars, null);
   run = {kind, t0, start, end, s, notes};
@@ -965,9 +936,13 @@ function release(){
 function onDown(e){
   const onPad = pad.contains(e.target);
   gesture = {x: e.clientX, y: e.clientY, t: Date.now(), onPad};
+  // Prevent every default on the pad, not just during a live attempt — a fast
+  // double-tap on the "Begin" state is exactly what iOS reads as a zoom
+  // gesture, and touch-action alone hasn't been reliable enough to stop it.
+  if(onPad) e.preventDefault();
   // Only a live attempt acts immediately — everything else waits for the lift
   // so we can tell a tap from a swipe.
-  if(onPad && run && run.kind === 'attempt'){ e.preventDefault(); registerTap(); }
+  if(onPad && run && run.kind === 'attempt') registerTap();
 }
 
 function onUp(e){
@@ -1077,17 +1052,20 @@ function grade(r){
   const bias = signed.length
     ? Math.round(1000*signed.reduce((s,e) => s+e, 0)/signed.length) : null;
 
-  document.getElementById('rPct').textContent = pct + '%';
-  document.getElementById('rNote').textContent =
-    pct === 100 ? 'clean' : pct >= 70 ? 'close' : 'read it again';
-  document.getElementById('rHits').textContent = onsetHits + '/' + total;
-  document.getElementById('rSus').textContent = sustainOk + '/' + total;
-  document.getElementById('rErr').textContent = spread === null ? '—' : '±' + spread + 'ms';
-  document.getElementById('rBias').textContent = bias === null ? '—'
-    : (bias > 0 ? '+' : '') + bias + 'ms ' + (Math.abs(bias) < 15 ? 'centred' : bias > 0 ? 'late' : 'early');
-  document.getElementById('rExtra').textContent = extra;
-  document.getElementById('rCal').textContent = Math.round(calMs) + 'ms';
-  resEl.classList.add('on');
+  // The pad IS the result: just the percentage, coloured by how it went —
+  // every other stat used to spill a panel off the bottom of an iPhone screen.
+  const tier = pct === 100 ? 'great' : pct >= 70 ? 'good' : 'medium';
+  padPct.textContent = pct + '%';
+  padPct.classList.remove('great','good','medium');
+  padPct.classList.add('on', tier);
+
+  // Exposed for the test suite, which still needs the numbers behind the
+  // single percentage on screen (calibration convergence, sustain stats, …).
+  window.__lastGrade = {
+    pct, hits: onsetHits + '/' + total, sustain: sustainOk + '/' + total,
+    spread, bias, extra, cal: Math.round(calMs),
+  };
+
   renderScore(bars, marks);      // draws the timing/sustain lane under each staff
 
   // ---- learn the latency offset ------------------------------------------
@@ -1176,7 +1154,7 @@ function refreshLevel(){
 // Pattern history, so the left arrow can go back to something you want to retry.
 function showPattern(b){
   bars = b;
-  resEl.classList.remove('on');
+  clearResult();
   passed = false;
   promoEl.classList.remove('on');
   renderScore(bars, null);
@@ -1244,13 +1222,6 @@ document.getElementById('promoNo').addEventListener('click', () => {
 document.getElementById('up').addEventListener('click', () => shift(1));
 document.getElementById('down').addEventListener('click', () => shift(-1));
 hearBtn.addEventListener('click', () => { if(!run) unlock().then(() => begin('show')); });
-document.getElementById('reset').addEventListener('click', () => {
-  if(run) return;
-  level = 1; calMs = 0; streak = 0; promoSnoozedAt = 0; userBpm = 0; silent = false;
-  paintSilent();
-  hist = []; histIdx = -1;
-  save(); refreshLevel(); fresh();
-});
 
 // Register the offline worker only when served over http(s) and a manifest is
 // reachable. Opened as a bare file (or inside an app webview) this is skipped

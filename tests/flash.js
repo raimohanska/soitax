@@ -89,7 +89,7 @@ const accent=()=>G('pad').classList.contains('pulse-accent');
   G('pad').dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true,clientX:150,clientY:700}));
   ok(w.__osc===0,'a tap makes no sound in silent mode');
   w.__advance(60); await sleep(90);
-  const graded=G('rHits').textContent;
+  const graded=w.__lastGrade.hits;
   console.log('  graded anyway:', graded);
   ok(/\d+\/\d+/.test(graded),'attempt is still graded in silent mode');
 

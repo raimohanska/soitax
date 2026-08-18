@@ -61,8 +61,8 @@ async function trial(jitter, holdFrac){
     up();
   }
   w.__advance(40); await sleep(90);
-  return {pct:parseInt(G('rPct').textContent), onsets:G('rHits').textContent,
-          sus:G('rSus').textContent, notes:onsets.length};
+  return {pct:w.__lastGrade.pct, onsets:w.__lastGrade.hits,
+          sus:w.__lastGrade.sustain, notes:onsets.length};
 }
 
 (async()=>{

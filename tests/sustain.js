@@ -60,14 +60,14 @@ setTimeout(async () => {
   win.__advance(20);
   await new Promise(r=>setTimeout(r,80));
 
-  ok(doc.getElementById('res').classList.contains('on'),'result shown');
-  const hits = doc.getElementById('rHits').textContent;
-  const sus  = doc.getElementById('rSus').textContent;
-  const bias = doc.getElementById('rBias').textContent;
+  ok(doc.getElementById('padPct').classList.contains('on'),'result shown');
+  const hits = win.__lastGrade.hits;
+  const sus  = win.__lastGrade.sustain;
+  const bias = win.__lastGrade.bias;
   console.log('  onsets:',hits,' sustain:',sus,' tendency:',bias);
   ok(/^\d+\/\d+$/.test(hits),'onset stat well formed');
   ok(/^\d+\/\d+$/.test(sus),'sustain stat well formed');
-  ok(bias!=='','tendency reported');
+  ok(bias!==undefined,'tendency reported');
 
   console.log('\n=== feedback lane is drawn ===');
   const svg = doc.querySelector('#score svg');

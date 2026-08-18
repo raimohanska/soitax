@@ -74,7 +74,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
     await sleep(50);
     w.__advance(60);
     await sleep(90);
-    const totals=d.getElementById('rHits').textContent;   // "hit/total"
+    const totals=w.__lastGrade.hits;   // "hit/total"
     sounds=Number(totals.split('/')[1]);
     console.log(`  noteheads: ${heads}   sounding targets: ${sounds}   tie arcs: ${tieArcs}`);
     ok(sounds < heads, `fewer sounds than noteheads — ties merged (${sounds} < ${heads})`);

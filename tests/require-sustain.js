@@ -39,9 +39,9 @@ async function trial(holdFactor){
   win.__advance(25);
   await new Promise(r=>setTimeout(r,90));
   return {
-    pct: doc.getElementById('rPct').textContent,
-    onsets: doc.getElementById('rHits').textContent,
-    sustain: doc.getElementById('rSus').textContent,
+    pct: win.__lastGrade.pct,
+    onsets: win.__lastGrade.hits,
+    sustain: win.__lastGrade.sustain,
   };
 }
 
