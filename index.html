@@ -627,6 +627,15 @@ window.addEventListener('pointerdown', unlock, {once:true, passive:true});
 window.addEventListener('keydown', unlock, {once:true});
 
 /* ---- hi-hat: filtered noise burst, used for the metronome ---- */
+let metGain = null;                     // shared gain for all hat sounds
+function metNode(){
+  if(!metGain){
+    const a = ctx();
+    metGain = a.createGain();
+    metGain.connect(a.destination);
+  }
+  return metGain;
+}
 let noiseBuf = null;
 function noise(){
   const a = ctx();
@@ -649,7 +658,7 @@ function hat(at, accent){
   g.gain.setValueAtTime(0.0001, at);
   g.gain.exponentialRampToValueAtTime(peak, at+0.0015);
   g.gain.exponentialRampToValueAtTime(0.0001, at+dur);
-  src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(a.destination);
+  src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(metNode());
   src.start(at); src.stop(at+dur+0.03);
 }
 
@@ -798,20 +807,21 @@ function begin(kind){
   const start = t0 + BEATS*U*s;
   const end = start + bars.length*BAR*s;
   try{
-    // In silent mode nothing is scheduled at all — the beat flash carries the
-    // pulse instead, so you can practise without disturbing anyone.
-    if(!silent){
-      // Hi-hat metronome: four count-in beats, then it keeps going for the whole
-      // pattern so you always have the pulse to play against.
-      const totalBeats = BEATS + bars.length*BEATS;
-      for(let i=0;i<totalBeats;i++){
-        hat(t0 + i*U*s, i % BEATS === 0);
-      }
-      // The rhythm is only played back in "show me" mode. During an attempt you
-      // read it from the notation — the only thing you hear is your own tapping.
-      if(kind === 'show'){
-        for(const n of notes) if(!n.rest) piano(start + n.abs*s, NOTE_HZ, 0.34, n.dur*s*0.92);
-      }
+    // Hi-hat metronome: four count-in beats, then it keeps going for the whole
+    // pattern so you always have the pulse to play against.
+    const totalBeats = BEATS + bars.length*BEATS;
+    for(let i=0;i<totalBeats;i++){
+      hat(t0 + i*U*s, i % BEATS === 0);
+    }
+    // Start muted if in silent mode — unmute via the button mid-play if needed.
+    if(silent && metGain){
+      metGain.gain.cancelScheduledValues(0);
+      metGain.gain.value = 0;
+    }
+    // The rhythm is only played back in "show me" mode. During an attempt you
+    // read it from the notation — the only thing you hear is your own tapping.
+    if(!silent && kind === 'show'){
+      for(const n of notes) if(!n.rest) piano(start + n.abs*s, NOTE_HZ, 0.34, n.dur*s*0.92);
     }
   }catch(e){}
   taps = [];
@@ -1112,7 +1122,7 @@ function syncControls(){
   prevBtn.disabled = busy || histIdx <= 0;
   nextBtn.disabled = busy;
   hearBtn.disabled = busy;
-  silentBtn.disabled = busy;
+
   document.getElementById('up').disabled   = busy || level >= 10;
   document.getElementById('down').disabled = busy || level <= 1;
   document.getElementById('bpmUp').disabled   = busy || tempo() >= BPM_MAX;
@@ -1226,8 +1236,11 @@ function paintSilent(){
   silentBtn.style.color = silent ? '#141418' : '';
 }
 silentBtn.addEventListener('click', () => {
-  if(run) return;
   silent = !silent;
+  if(metGain){
+    metGain.gain.cancelScheduledValues(0);
+    metGain.gain.value = silent ? 0 : 1;
+  }
   paintSilent(); save();
 });
 
