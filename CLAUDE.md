@@ -105,11 +105,14 @@ than the thing it measured.
 
 ## Deploying
 
+There is only ever one branch: `main`. Never create, check out, or push to any
+other branch — work directly on `main`, always.
+
 When the user says "deploy" (just that word, in response to changes you've made),
-commit the current changes with a clear descriptive message and push to the
-remote on the current branch. Don't ask for confirmation first — "deploy" is the
-confirmation. If there's nothing uncommitted and nothing unpushed, say so instead
-of creating an empty commit.
+commit the current changes with a clear descriptive message and push to `origin
+main`. Don't ask for confirmation first — "deploy" is the confirmation. If
+there's nothing uncommitted and nothing unpushed, say so instead of creating an
+empty commit.
 
 ## Conventions
 
