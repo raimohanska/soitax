@@ -7,6 +7,7 @@ const SUITES = [
   ['flash',           'beat flash + silent mode'],
   ['tempo',           'tempo control'],
   ['slack',           'reading-focused grading'],
+  ['reading',         'ordinary taps score green'],
   ['require-sustain', 'sustain genuinely required'],
   ['calibrate',       'latency self-calibration'],
   ['ties',            'tie semantics'],

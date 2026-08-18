@@ -989,6 +989,26 @@ window.addEventListener('keyup', e => {
 /* ══════════════════════════════════════════════════════════
    6. GRADING — feedback, not gatekeeping
    ══════════════════════════════════════════════════════════ */
+/* Tunables, gathered here because they decide whether this feels like a reading
+   trainer or a precision trainer. It is a reading trainer.
+
+   The sustain floor is the one that mattered. It used to be 40% of the written
+   value, so a quarter at 58bpm demanded a 414ms hold — while a natural tap is
+   more like 150ms. Reading the bar perfectly and tapping normally scored 0%,
+   because every note failed sustain even though every onset was dead on. The
+   floor is now an absolute one: hold a note at all and it counts. Genuine stabs
+   (sub-100ms) still fail, so "you stabbed a half note" is still caught, and the
+   upper bound still catches holding straight through a rest. */
+const ONSET_WINDOW_BEATS = 0.9;   // how far off an onset may be, in beats
+const ONSET_WINDOW_MIN   = 0.24;  // ...but never tighter than this, in seconds
+const SUSTAIN_MIN_FRAC   = 0.35;  // hold at least this share of the written value
+const SUSTAIN_MIN_ABS    = 0.12;  // ...or just this long, whichever is SHORTER
+const SUSTAIN_MAX_FRAC   = 2.5;   // holding much longer than written is a misread
+const SUSTAIN_MAX_ABS    = 0.45;  // ...with this much absolute slack on top
+// Colour tiers. Green has to be reachable without perfection: a four-note bar
+// can only score 0/25/50/75/100, so anything above 75 makes green mean "flawless".
+const GREEN_AT = 75, AMBER_AT = 50;
+
 function grade(r){
   const a = ctx();
   // Two corrections, because a consistent lateness is equipment, not the player:
@@ -1008,7 +1028,7 @@ function grade(r){
   const onsets = soundingNotes().map(n => n.abs);
   let minGap = Infinity;
   for(let i=1;i<onsets.length;i++) minGap = Math.min(minGap, (onsets[i]-onsets[i-1])*r.s);
-  const tol = Math.min(beat*0.75, Math.max(0.20, minGap*0.5));
+  const tol = Math.min(beat*ONSET_WINDOW_BEATS, Math.max(ONSET_WINDOW_MIN, minGap*0.5));
 
   // Tied notes are ONE sustained sound, so they get one target whose duration
   // covers the whole tie — you hold through the beat rather than re-tapping.
@@ -1039,11 +1059,11 @@ function grade(r){
     const held = Math.max(0.01, got[bi].up - got[bi].down);
     errs.push(Math.abs(err)); signed.push(err);
 
-    // Sustain only has to be in the right ballpark — long notes held long,
-    // short notes short. This catches "stabbed a half note" or "held through a
-    // rest", and forgives everything in between.
-    const lo = Math.min(tg.dur*0.4, tg.dur - 0.10);
-    const hi = Math.max(tg.dur*2.2, tg.dur + 0.30);
+    // Sustain has to be in the right ballpark, nothing more. The floor is
+    // whichever is SHORTER — a share of the written value, or a flat minimum —
+    // so an ordinary tap always clears it and only a true stab fails.
+    const lo = Math.min(tg.dur*SUSTAIN_MIN_FRAC, SUSTAIN_MIN_ABS);
+    const hi = Math.max(tg.dur*SUSTAIN_MAX_FRAC, tg.dur + SUSTAIN_MAX_ABS);
     const good = held >= lo && held <= hi;
     const diff = held - tg.dur;
     if(good) sustainOk++;
@@ -1058,7 +1078,12 @@ function grade(r){
   const clean = [...marks.values()].filter(m => m.status === 'hit').length;
   const extra = used.filter(u => !u).length;
   const total = targets.length;
-  const pct = total ? Math.round(100*clean/total) : 0;
+  // Taps that matched nothing dilute the score, because otherwise tapping a
+  // steady stream and ignoring the page scores 100% — the windows are wide
+  // enough now that some stray tap lands on every note. The first stray is
+  // free (a fumble is not a misread); after that the score thins out.
+  const overshoot = Math.max(0, extra - 1);
+  const pct = total ? Math.round(100*clean/(total + overshoot)) : 0;
   const spread = errs.length
     ? Math.round(1000*errs.reduce((s,e) => s+e, 0)/errs.length) : null;
   const bias = signed.length
@@ -1066,7 +1091,7 @@ function grade(r){
 
   // The pad IS the result: just the percentage, coloured by how it went —
   // every other stat used to spill a panel off the bottom of an iPhone screen.
-  const tier = pct === 100 ? 'great' : pct >= 70 ? 'good' : 'medium';
+  const tier = pct >= GREEN_AT ? 'great' : pct >= AMBER_AT ? 'good' : 'medium';
   padPct.textContent = pct + '%';
   padPct.classList.remove('great','good','medium');
   padPct.classList.add('on', tier);
@@ -1096,8 +1121,9 @@ function grade(r){
   }
 
   // ---- make "next" the obvious move once they've got it -------------------
-  // A good run makes "go forward" the obvious move.
-  passed = pct >= 80;
+  // Tied to the green threshold on purpose, so the colour is not decorative:
+  // green means you cleared it, and clearing it is what builds the streak.
+  passed = pct >= GREEN_AT;
   if(passed){ streak++; } else { streak = 0; }
   save();
   syncControls();

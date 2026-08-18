@@ -81,11 +81,30 @@ only have one or two notes, which must not stall calibration). Persisted.
 
 ## Grading philosophy
 
-Reading is the skill, not millisecond precision. Onset windows are wide (75% of a
-beat), capped at half the gap to the neighbouring note so a tap can't be credited
-to the wrong note. **Sustain is required** but loose (40%–220% of written value) —
-that's what makes note *length* part of the reading. Don't tighten these to make
-scores look more discriminating; that's the opposite of the point.
+Reading is the skill, not millisecond precision. Every knob lives in one block of
+named constants above `grade()` — change them there, not inline.
+
+Onset windows are wide (90% of a beat), capped at half the gap to the
+neighbouring note so a tap can't be credited to the wrong note.
+
+**Sustain is required, but the floor is absolute, not proportional**:
+`min(35% of the written value, 120ms)`. This is the one that was wrong for a long
+time. A proportional 40% floor meant a quarter at 58bpm demanded a 414ms hold,
+while a natural finger tap is ~150ms — so a player who read the bar perfectly and
+tapped it normally scored **0%**, every onset landing and every note failing
+sustain. Note *length* is still read: the upper bound (250%) catches stabbing a
+half note or holding through a rest. Don't restore a proportional floor.
+
+Stray taps that match no note dilute the score (the first one is free). Without
+that, tapping a steady stream and ignoring the page scores 100% — the windows are
+wide enough now that some tap lands on every note.
+
+Green is 75%, not 100%: a four-note bar can only score 0/25/50/75/100, so any
+higher threshold makes green mean "flawless". `passed` is the same constant, so
+the colour is not decorative — green means you cleared it and the streak grew.
+
+Don't tighten any of this to make scores look more discriminating; that's the
+opposite of the point. `tests/reading.js` guards both directions.
 
 ## Testing: what the suite cannot see
 
