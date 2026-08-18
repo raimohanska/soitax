@@ -1042,7 +1042,9 @@ function grade(r){
     // Sustain only has to be in the right ballpark — long notes held long,
     // short notes short. This catches "stabbed a half note" or "held through a
     // rest", and forgives everything in between.
-    const lo = Math.min(tg.dur*0.4, tg.dur - 0.10);
+    // Eighth and sixteenth notes count as a click — no sustain required.
+    const click = tg.units <= U;
+    const lo = click ? 0 : Math.min(tg.dur*0.4, tg.dur - 0.10);
     const hi = Math.max(tg.dur*2.2, tg.dur + 0.30);
     const good = held >= lo && held <= hi;
     const diff = held - tg.dur;
