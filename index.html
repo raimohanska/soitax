@@ -519,6 +519,14 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
     if(mk) s += feedback(x, mk);
   });
 
+  // Extra taps (mistakes) rendered as red bars in the feedback lane.
+  if(markMap){
+    for(const [id, mk] of markMap){
+      if(mk.status !== 'extra' || mk.bar !== rowIdx) continue;
+      s += feedbackExtra(mk.onset, mk);
+    }
+  }
+
   return s + '</g>';
 }
 
@@ -562,6 +570,13 @@ function feedback(x, mk){
             stroke="${col}" stroke-width="0.8" stroke-dasharray="1.5 1.5"/>`;
   }
   return s;
+}
+
+function feedbackExtra(onset, mk){
+  const x = xAt(onset);
+  const held = Math.max(Math.min(wUnits(mk.held / mk.s), (VW - PAD_R) - x), 2.5);
+  return `<rect x="${x}" y="${LANE + 0.9}" width="${held}" height="${LANE_H - 1.8}"
+            fill="${C_MISS}" opacity="0.7"/>`;
 }
 
 const scoreEl = document.getElementById('score');
@@ -1053,7 +1068,7 @@ function grade(r){
     // short notes short. This catches "stabbed a half note" or "held through a
     // rest", and forgives everything in between.
     // Eighth and sixteenth notes count as a click — no sustain required.
-    const click = tg.units <= U;
+    const click = tg.units <= U*2;
     const lo = click ? 0 : Math.min(tg.dur*0.4, tg.dur - 0.10);
     const hi = Math.max(tg.dur*2.2, tg.dur + 0.30);
     const good = held >= lo && held <= hi;
@@ -1066,11 +1081,28 @@ function grade(r){
     });
   }
 
+  // Extra taps that didn't match any expected note are mistakes — penalised
+  // in the score and shown as red marks in the feedback lane.
+  let extraCount = 0;
+  got.forEach((t, i) => {
+    if(used[i]) return;
+    const unitsFromStart = (t.down - r.start) / r.s;
+    const bi = Math.floor(unitsFromStart / BAR);
+    const onset = unitsFromStart - bi * BAR;
+    if(bi < 0 || bi >= bars.length) return;
+    const held = Math.max(0.01, t.up - t.down);
+    marks.set('extra-'+extraCount, {
+      status:'extra', bar:bi, onset, held,
+      dur: 0.5*r.s, units:6, s:r.s,
+    });
+    extraCount++;
+  });
+
   // A note only counts when the onset AND the sustain are right.
   const clean = [...marks.values()].filter(m => m.status === 'hit').length;
-  const extra = used.filter(u => !u).length;
+  const extra = [...marks.values()].filter(m => m.status === 'extra').length;
   const total = targets.length;
-  const pct = total ? Math.round(100*clean/total) : 0;
+  const pct = total ? Math.round(100*clean/(total + extra)) : 0;
   const spread = errs.length
     ? Math.round(1000*errs.reduce((s,e) => s+e, 0)/errs.length) : null;
   const bias = signed.length
