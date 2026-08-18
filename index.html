@@ -58,16 +58,6 @@
   .stepper button:active{background:#141418;color:#fff;border-color:#141418;}
   .stepper button:disabled{opacity:.3;}
 
-  /* ---- beat flash (silent practice) ----
-     The pulse is carried by the page itself so it's visible in peripheral
-     vision while your eyes stay on the notation. */
-  #backdrop{transition:background-color 70ms linear;}
-  #backdrop.pulse{background:#ebebe6;}
-  #backdrop.pulse-accent{background:#dcdcd4;}
-  .wrap{transition:background-color 70ms linear;}
-  body.pulse .wrap{background:#f2f2ee;}
-  body.pulse-accent .wrap{background:#e8e8e1;}
-
   .beats{display:flex;gap:8px;justify-content:center;height:10px;align-items:center;}
   .beats i{
     width:8px;height:8px;border-radius:50%;background:#e3e3de;display:block;
@@ -115,6 +105,7 @@
     border:1.5px solid #141418;border-radius:3px;background:#fff;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
     cursor:pointer;overflow:hidden;transition:background .15s,border-color .15s;
+    touch-action:none;
   }
   .pad-main{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#141418;
             font-weight:600;transition:color .15s;text-align:center;}
@@ -128,6 +119,15 @@
   .pad[data-m="play"] .pad-sub{color:#b8b8be;}
   .pad.hit{background:#3a3a42;}
   .pad.hit .pad-main{color:#fff;}
+
+  /* ---- beat flash (silent practice) ----
+     The pulse lives on the pad itself, not the page — flashing the whole
+     screen was distracting; the button is where your finger already is. */
+  .pad.pulse,.pad.pulse-accent{transition:background 70ms linear;}
+  .pad.pulse{background:#ebebe6;}
+  .pad.pulse-accent{background:#dcdcd4;}
+  .pad[data-m="play"].pulse{background:#26262c;}
+  .pad[data-m="play"].pulse-accent{background:#323239;}
 
   /* ---- links ---- */
   .links{display:flex;justify-content:center;gap:26px;}
@@ -849,7 +849,6 @@ function begin(kind){
 // Beat pulse: derived from the audio clock inside the existing loop, so the
 // flash can never drift away from the click the way a separate timer would.
 const beatDots = [...document.querySelectorAll('#beats i')];
-const backdrop = document.getElementById('backdrop');
 
 function paintBeat(run, now){
   const {t0, s} = run;
@@ -862,10 +861,8 @@ function paintBeat(run, now){
   }
   const lit = now < (run.flashUntil || 0);
   const accent = !!run.accent;
-  backdrop.classList.toggle('pulse', lit && !accent);
-  backdrop.classList.toggle('pulse-accent', lit && accent);
-  document.body.classList.toggle('pulse', lit && !accent);
-  document.body.classList.toggle('pulse-accent', lit && accent);
+  pad.classList.toggle('pulse', lit && !accent);
+  pad.classList.toggle('pulse-accent', lit && accent);
   const within = ((idx % BEATS) + BEATS) % BEATS;
   beatDots.forEach((d, i) => {
     d.classList.toggle('on', i === within && lit && !accent);
@@ -873,8 +870,7 @@ function paintBeat(run, now){
   });
 }
 function clearBeat(){
-  backdrop.classList.remove('pulse','pulse-accent');
-  document.body.classList.remove('pulse','pulse-accent');
+  pad.classList.remove('pulse','pulse-accent');
   beatDots.forEach(d => d.classList.remove('on','accent'));
 }
 
