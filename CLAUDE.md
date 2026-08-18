@@ -103,6 +103,14 @@ Also: when a test fails, check whether the *harness* is wrong. Several
 two taps 1ms apart (correctly debounced), or sampling flash timing more coarsely
 than the thing it measured.
 
+## Deploying
+
+When the user says "deploy" (just that word, in response to changes you've made),
+commit the current changes with a clear descriptive message and push to the
+remote on the current branch. Don't ask for confirmation first — "deploy" is the
+confirmation. If there's nothing uncommitted and nothing unpushed, say so instead
+of creating an empty commit.
+
 ## Conventions
 
 - Plain readable JS over clever JS. No transpiling, no bundler.
