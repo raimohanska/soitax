@@ -1,0 +1,14 @@
+{
+  "name": "pulse-rhythm-trainer",
+  "version": "1.0.0",
+  "description": "Rhythm notation reading trainer — a single self-contained HTML file",
+  "license": "MIT",
+  "scripts": {
+    "test": "cd tests && node all.js",
+    "test:one": "cd tests && node",
+    "serve": "python3 -m http.server 8099",
+    "postinstall": "echo 'Run: cd tests && npm install   (test deps live there)'"
+  },
+  "keywords": ["music", "rhythm", "notation", "sight-reading", "pwa"],
+  "private": true
+}
