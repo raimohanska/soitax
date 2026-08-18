@@ -86,9 +86,16 @@ async function trial(jitter, holdFrac){
   }
 
   console.log('\n=== a genuinely wrong read must still FAIL ===');
+  // Stabbing is no longer the wrong read — everything up to a half note counts
+  // as a click, so a short tap is just how people play. What is still wrong is
+  // putting the notes in the wrong PLACE: a whole beat out is a different rhythm.
+  const offbeat=await trial(0.95, 0.85);
+  console.log(`  a beat out of place → ${offbeat.pct}%  onsets ${offbeat.onsets}`);
+  ok(offbeat.pct < 75, 'playing a beat away from the notation fails');
+
   const stab=await trial(0.05, 0.03);        // stabbing everything staccato
-  console.log(`  staccato stabs → ${stab.pct}%  sustain ${stab.sus}`);
-  ok(stab.pct < 80, 'stabbing long notes still fails (sustain wrong)');
+  console.log(`  staccato stabs      → ${stab.pct}%  sustain ${stab.sus}`);
+  ok(stab.pct >= 80, 'but a short tap is a valid read, not a mistake');
 
   console.log('\n=== ties across the bar line ===');
   const w=boot(), d=w.document;

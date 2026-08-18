@@ -87,24 +87,40 @@ named constants above `grade()` — change them there, not inline.
 Onset windows are wide (90% of a beat), capped at half the gap to the
 neighbouring note so a tap can't be credited to the wrong note.
 
-**Sustain is required, but the floor is absolute, not proportional**:
-`min(35% of the written value, 120ms)`. This is the one that was wrong for a long
-time. A proportional 40% floor meant a quarter at 58bpm demanded a 414ms hold,
-while a natural finger tap is ~150ms — so a player who read the bar perfectly and
-tapped it normally scored **0%**, every onset landing and every note failing
-sustain. Note *length* is still read: the upper bound (250%) catches stabbing a
-half note or holding through a rest. Don't restore a proportional floor.
+**There is no sustain floor any more.** Anything up to a half note counts as a
+click (`tg.units <= U*2`), and since the longest value `CELLS` can produce *is* a
+half note, that branch is currently true for every note in the app — the floor is
+effectively dead code. Keep that in mind before "fixing" it: it reads like a
+special case for short notes, but it applies to everything.
 
-Stray taps that match no note dilute the score (the first one is free). Without
-that, tapping a steady stream and ignoring the page scores 100% — the windows are
-wide enough now that some tap lands on every note.
+This was the fix for a real complaint. The old floor was 40% of the written
+value, so a quarter at 58bpm demanded a 414ms hold while a natural finger tap is
+~150ms. A player who read the bar perfectly and tapped it normally scored **0%** —
+every onset landing, every note failing sustain. Onsets were never the strict
+part; ±600ms of jitter still scores 100%.
+
+What survives is the **ceiling** (220% of value): smearing a note across the next
+one, or holding through a rest, is still a misread. That is the only thing hold
+length can now cost you.
+
+Stray taps that match no note each dilute the score (`clean/(total+extra)`) and
+draw a red mark in the feedback lane. Without that, tapping a steady stream and
+ignoring the page scores 100%, because the windows are wide enough that some tap
+lands on every note.
 
 Green is 75%, not 100%: a four-note bar can only score 0/25/50/75/100, so any
 higher threshold makes green mean "flawless". `passed` is the same constant, so
 the colour is not decorative — green means you cleared it and the streak grew.
 
 Don't tighten any of this to make scores look more discriminating; that's the
-opposite of the point. `tests/reading.js` guards both directions.
+opposite of the point. `tests/reading.js` guards both directions: an ordinary tap
+on a correct read must be green, and mashing a steady stream must not be.
+
+Grading tests must tap **what is actually on the page** (read the notehead `cx`
+positions out of the SVG) and, when two runs are compared, seed `Math.random` so
+both get the same bar. Blindly tapping four quarters used to be a fine
+approximation; now every tap that lands on a rest counts as an extra and the
+"perfect player" silently scores 60%.
 
 ## Testing: what the suite cannot see
 

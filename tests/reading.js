@@ -87,11 +87,14 @@ async function play({holdMs=150, jitterMs=0, spam=false}={}){
     ok(r.green, `still green when every tap is ±${jitterMs}ms off the beat (${r.pct}%)`);
   }
 
-  console.log('\n=== but it is still possible to fail ===');
+  console.log('\n=== a short tap is a read, not a mistake ===');
+  // Nothing the generator writes is longer than a half note, and those all count
+  // as a click, so there is no hold length that fails on the low side any more.
   const stab = await play({holdMs:30});
   console.log(`  stabbing        → ${stab.pct}%  sustain ${stab.sustain}`);
-  ok(!stab.green, `stabbing every note is not green (${stab.pct}%)`);
+  ok(stab.green, `even a 30ms stab on a correct read is green (${stab.pct}%)`);
 
+  console.log('\n=== but it is still possible to fail ===');
   const spam = await play({holdMs:150, spam:true});
   console.log(`  ignoring the page → ${spam.pct}%  onsets ${spam.hits} of ${spam.notes} notated`);
   ok(!spam.green, `tapping a steady stream regardless of what is written is not green (${spam.pct}%)`);

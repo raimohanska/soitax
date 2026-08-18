@@ -4,9 +4,12 @@
 const fs=require('fs');const {JSDOM}=require('jsdom');
 const html=fs.readFileSync(__dirname+'/../index.html','utf8');
 const stub=`(function(){let t=0;
-window.__hats=[]; window.__osc=0;
+window.__hats=[]; window.__osc=0; window.__gains=[];
 function osc(){const o={_f:0,type:'',frequency:{set value(v){o._f=v;},get value(){return o._f;},setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){return this;},start(){window.__osc++;},stop(){}};return o;}
-function gain(){return{gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(){}},connect(){return this;}};}
+// gain starts at 1 (audible) and records what it was connected to, so the test
+// can find the master metronome node and read whether it is muted.
+function gain(){const g={gain:{value:1,setValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(){}},
+  connect(dst){this.__to=dst;return this;}};window.__gains.push(g);return g;}
 function filt(){return{type:'',Q:{value:0},frequency:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){return this;}};}
 class AC{constructor(){this.state='running';this.baseLatency=0;this.destination=gain();}
 get currentTime(){return t;}resume(){return Promise.resolve();}
@@ -64,7 +67,11 @@ const accent=()=>G('pad').classList.contains('pulse-accent');
   w.__advance(60); await sleep(90);
   ok(!lit(),'flash cleared when the run ends');
 
-  console.log('\n=== silent mode schedules NO audio but still flashes ===');
+  console.log('\n=== silent mode makes NO SOUND but still flashes ===');
+  // The metronome is scheduled either way now and muted through a shared gain,
+  // which is what lets you unmute mid-attempt. So "silent" is about audibility,
+  // not about whether anything was scheduled.
+  const master = () => w.__gains.find(g => g.__to === w.__gains[0]);   // node wired to destination
   G('silent').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
   await sleep(40);
   console.log('  toggle now reads:', G('silent').textContent);
@@ -72,8 +79,9 @@ const accent=()=>G('pad').classList.contains('pulse-accent');
   w.__hats.length=0; w.__osc=0;
   tap(); await sleep(50);
   w.__advance(beat*0.5); await sleep(20);
-  console.log(`  hats scheduled: ${w.__hats.length}   oscillators started: ${w.__osc}`);
-  ok(w.__hats.length===0,'no metronome clicks in silent mode');
+  const m = master();
+  console.log(`  hats scheduled: ${w.__hats.length}   metronome gain: ${m && m.gain.value}   oscillators started: ${w.__osc}`);
+  ok(!!m && m.gain.value === 0,'metronome is muted in silent mode');
   ok(w.__osc===0,'no pitched audio in silent mode');
   // and the flash still works
   let sawFlash=false;

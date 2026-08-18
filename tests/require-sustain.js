@@ -1,8 +1,16 @@
-// Prove sustain is REQUIRED: identical onsets, only the hold length differs.
+// What does hold LENGTH cost you? Identical onsets, only the hold differs.
+//
+// The answer changed: everything the generator writes is a half note or shorter,
+// and those all count as a click now, so tapping short is free. Only smearing a
+// note far past its value is still a misread. Both trials must run on the SAME
+// bar or the comparison is meaningless, hence the seeded RNG.
 const fs=require('fs');const {JSDOM}=require('jsdom');
 const html=fs.readFileSync(__dirname+'/../index.html','utf8');
 const stub=`
 (function(){let t=0;
+// deterministic pattern, so every trial reads the identical bar
+let seed=12345;
+Math.random=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
 function osc(){const o={_f:0,type:'',frequency:{set value(v){o._f=v;},get value(){return o._f;},setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){return this;},start(){},stop(){}};return o;}
 function gain(){return{gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(){}},connect(){return this;}};}
 function filt(){return{type:'',Q:{value:0},frequency:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){return this;}};}
@@ -22,19 +30,30 @@ async function trial(holdFactor){
   const pev=(t)=>pad().dispatchEvent(new win.MouseEvent(t,{bubbles:true,cancelable:true}));
   await new Promise(r=>setTimeout(r,250));
 
-  const U=12,spu=(60/58)/U, noteLen=12*spu;  // level 1 is quarter notes
+  const U=12,spu=(60/58)/U, noteLen=12*spu, BAR=48;
+
+  // Tap what is written. Tapping a blind stream would rack up extra taps, and
+  // those are mistakes now — we would be measuring the wrong thing.
+  const svg=doc.querySelector('#score svg');
+  const PAD_L=16, SPAN=320-16-20;
+  const onsets=[...svg.querySelectorAll('ellipse')]
+    .map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b)
+    .map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
+
   win.__advance(1);
   pev('pointerdown');pev('pointerup');
   await new Promise(r=>setTimeout(r,50));
   win.__advance(4*U*spu+0.12);
   await new Promise(r=>setTimeout(r,50));
 
-  for(let i=0;i<8;i++){
+  let cursor=0;
+  for(let k=0;k<onsets.length;k++){
+    const step=Math.max(0.02, onsets[k]*spu - cursor);
+    win.__advance(step); cursor+=step;
     pev('pointerdown');
-    win.__advance(Math.max(0.005, noteLen*holdFactor*0.95));
+    const hold=Math.max(0.005, noteLen*holdFactor*0.95);
+    win.__advance(hold); cursor+=hold;
     pev('pointerup');
-    const rest = noteLen - noteLen*holdFactor*0.95;
-    win.__advance(rest>0?rest:0.001);
   }
   win.__advance(25);
   await new Promise(r=>setTimeout(r,90));
@@ -53,17 +72,29 @@ async function trial(holdFactor){
   console.log('correct hold  :', JSON.stringify(good));
   const stab = await trial(0.08);
   console.log('staccato stabs:', JSON.stringify(stab));
+  const dragged = await trial(3.4);
+  console.log('held far too long:', JSON.stringify(dragged));
 
   const susNum = s => Number(String(s).split('/')[0]);
   const onNum  = s => Number(String(s).split('/')[0]);
 
-  ok(susNum(good.sustain) > susNum(stab.sustain),
-     `correct holds score better on sustain (${good.sustain} vs ${stab.sustain})`);
+  // The floor is gone on purpose: nothing the generator writes is longer than a
+  // half note, and everything up to a half note now counts as a click. Tapping
+  // short is how people actually play, and it is no longer a mistake.
+  ok(susNum(stab.sustain) === susNum(good.sustain),
+     `a short tap is as good as a full hold (${stab.sustain} vs ${good.sustain})`);
   ok(onNum(stab.onsets) > 0,
-     `stabs still land their onsets (${stab.onsets}) — so the penalty is sustain-specific`);
-  ok(parseInt(good.pct) > parseInt(stab.pct),
-     `overall score requires sustain (${good.pct} vs ${stab.pct})`);
+     `stabs land their onsets (${stab.onsets})`);
+  ok(parseInt(stab.pct) === parseInt(good.pct),
+     `and score the same (${stab.pct} vs ${good.pct})`);
 
-  console.log('\n' + (fails===0?'=== SUSTAIN IS REQUIRED ===':`=== ${fails} FAILURES ===`));
+  // What survives is the ceiling — smearing one note across the next, or
+  // holding straight through a rest, is still a misread.
+  ok(susNum(dragged.sustain) < susNum(good.sustain),
+     `holding far too long is still wrong (${dragged.sustain} vs ${good.sustain})`);
+  ok(parseInt(dragged.pct) < parseInt(good.pct),
+     `and costs the score (${dragged.pct} vs ${good.pct})`);
+
+  console.log('\n' + (fails===0?'=== ONLY OVER-HOLDING IS PENALISED ===':`=== ${fails} FAILURES ===`));
   process.exit(fails?1:0);
 })();

@@ -519,6 +519,14 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
     if(mk) s += feedback(x, mk);
   });
 
+  // Extra taps (mistakes) rendered as red bars in the feedback lane.
+  if(markMap){
+    for(const [id, mk] of markMap){
+      if(mk.status !== 'extra' || mk.bar !== rowIdx) continue;
+      s += feedbackExtra(mk.onset, mk);
+    }
+  }
+
   return s + '</g>';
 }
 
@@ -562,6 +570,13 @@ function feedback(x, mk){
             stroke="${col}" stroke-width="0.8" stroke-dasharray="1.5 1.5"/>`;
   }
   return s;
+}
+
+function feedbackExtra(onset, mk){
+  const x = xAt(onset);
+  const held = Math.max(Math.min(wUnits(mk.held / mk.s), (VW - PAD_R) - x), 2.5);
+  return `<rect x="${x}" y="${LANE + 0.9}" width="${held}" height="${LANE_H - 1.8}"
+            fill="${C_MISS}" opacity="0.7"/>`;
 }
 
 const scoreEl = document.getElementById('score');
@@ -627,6 +642,15 @@ window.addEventListener('pointerdown', unlock, {once:true, passive:true});
 window.addEventListener('keydown', unlock, {once:true});
 
 /* ---- hi-hat: filtered noise burst, used for the metronome ---- */
+let metGain = null;                     // shared gain for all hat sounds
+function metNode(){
+  if(!metGain){
+    const a = ctx();
+    metGain = a.createGain();
+    metGain.connect(a.destination);
+  }
+  return metGain;
+}
 let noiseBuf = null;
 function noise(){
   const a = ctx();
@@ -649,7 +673,7 @@ function hat(at, accent){
   g.gain.setValueAtTime(0.0001, at);
   g.gain.exponentialRampToValueAtTime(peak, at+0.0015);
   g.gain.exponentialRampToValueAtTime(0.0001, at+dur);
-  src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(a.destination);
+  src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(metNode());
   src.start(at); src.stop(at+dur+0.03);
 }
 
@@ -798,20 +822,21 @@ function begin(kind){
   const start = t0 + BEATS*U*s;
   const end = start + bars.length*BAR*s;
   try{
-    // In silent mode nothing is scheduled at all — the beat flash carries the
-    // pulse instead, so you can practise without disturbing anyone.
-    if(!silent){
-      // Hi-hat metronome: four count-in beats, then it keeps going for the whole
-      // pattern so you always have the pulse to play against.
-      const totalBeats = BEATS + bars.length*BEATS;
-      for(let i=0;i<totalBeats;i++){
-        hat(t0 + i*U*s, i % BEATS === 0);
-      }
-      // The rhythm is only played back in "show me" mode. During an attempt you
-      // read it from the notation — the only thing you hear is your own tapping.
-      if(kind === 'show'){
-        for(const n of notes) if(!n.rest) piano(start + n.abs*s, NOTE_HZ, 0.34, n.dur*s*0.92);
-      }
+    // Hi-hat metronome: four count-in beats, then it keeps going for the whole
+    // pattern so you always have the pulse to play against.
+    const totalBeats = BEATS + bars.length*BEATS;
+    for(let i=0;i<totalBeats;i++){
+      hat(t0 + i*U*s, i % BEATS === 0);
+    }
+    // Start muted if in silent mode — unmute via the button mid-play if needed.
+    if(silent && metGain){
+      metGain.gain.cancelScheduledValues(0);
+      metGain.gain.value = 0;
+    }
+    // The rhythm is only played back in "show me" mode. During an attempt you
+    // read it from the notation — the only thing you hear is your own tapping.
+    if(!silent && kind === 'show'){
+      for(const n of notes) if(!n.rest) piano(start + n.abs*s, NOTE_HZ, 0.34, n.dur*s*0.92);
     }
   }catch(e){}
   taps = [];
@@ -990,23 +1015,12 @@ window.addEventListener('keyup', e => {
    6. GRADING — feedback, not gatekeeping
    ══════════════════════════════════════════════════════════ */
 /* Tunables, gathered here because they decide whether this feels like a reading
-   trainer or a precision trainer. It is a reading trainer.
-
-   The sustain floor is the one that mattered. It used to be 40% of the written
-   value, so a quarter at 58bpm demanded a 414ms hold — while a natural tap is
-   more like 150ms. Reading the bar perfectly and tapping normally scored 0%,
-   because every note failed sustain even though every onset was dead on. The
-   floor is now an absolute one: hold a note at all and it counts. Genuine stabs
-   (sub-100ms) still fail, so "you stabbed a half note" is still caught, and the
-   upper bound still catches holding straight through a rest. */
+   trainer or a precision trainer. It is a reading trainer. */
 const ONSET_WINDOW_BEATS = 0.9;   // how far off an onset may be, in beats
 const ONSET_WINDOW_MIN   = 0.24;  // ...but never tighter than this, in seconds
-const SUSTAIN_MIN_FRAC   = 0.35;  // hold at least this share of the written value
-const SUSTAIN_MIN_ABS    = 0.12;  // ...or just this long, whichever is SHORTER
-const SUSTAIN_MAX_FRAC   = 2.5;   // holding much longer than written is a misread
-const SUSTAIN_MAX_ABS    = 0.45;  // ...with this much absolute slack on top
 // Colour tiers. Green has to be reachable without perfection: a four-note bar
-// can only score 0/25/50/75/100, so anything above 75 makes green mean "flawless".
+// can only score 0/25/50/75/100, so anything above 75 makes green mean "flawless",
+// and one stray tap alone would drop a clean read out of it.
 const GREEN_AT = 75, AMBER_AT = 50;
 
 function grade(r){
@@ -1059,11 +1073,13 @@ function grade(r){
     const held = Math.max(0.01, got[bi].up - got[bi].down);
     errs.push(Math.abs(err)); signed.push(err);
 
-    // Sustain has to be in the right ballpark, nothing more. The floor is
-    // whichever is SHORTER — a share of the written value, or a flat minimum —
-    // so an ordinary tap always clears it and only a true stab fails.
-    const lo = Math.min(tg.dur*SUSTAIN_MIN_FRAC, SUSTAIN_MIN_ABS);
-    const hi = Math.max(tg.dur*SUSTAIN_MAX_FRAC, tg.dur + SUSTAIN_MAX_ABS);
+    // Sustain only has to be in the right ballpark — long notes held long,
+    // short notes short. This catches "stabbed a half note" or "held through a
+    // rest", and forgives everything in between.
+    // Anything up to a half note counts as a click — no sustain required.
+    const click = tg.units <= U*2;
+    const lo = click ? 0 : Math.min(tg.dur*0.4, tg.dur - 0.10);
+    const hi = Math.max(tg.dur*2.2, tg.dur + 0.30);
     const good = held >= lo && held <= hi;
     const diff = held - tg.dur;
     if(good) sustainOk++;
@@ -1074,16 +1090,28 @@ function grade(r){
     });
   }
 
+  // Extra taps that didn't match any expected note are mistakes — penalised
+  // in the score and shown as red marks in the feedback lane.
+  let extraCount = 0;
+  got.forEach((t, i) => {
+    if(used[i]) return;
+    const unitsFromStart = (t.down - r.start) / r.s;
+    const bi = Math.floor(unitsFromStart / BAR);
+    const onset = unitsFromStart - bi * BAR;
+    if(bi < 0 || bi >= bars.length) return;
+    const held = Math.max(0.01, t.up - t.down);
+    marks.set('extra-'+extraCount, {
+      status:'extra', bar:bi, onset, held,
+      dur: 0.5*r.s, units:6, s:r.s,
+    });
+    extraCount++;
+  });
+
   // A note only counts when the onset AND the sustain are right.
   const clean = [...marks.values()].filter(m => m.status === 'hit').length;
-  const extra = used.filter(u => !u).length;
+  const extra = [...marks.values()].filter(m => m.status === 'extra').length;
   const total = targets.length;
-  // Taps that matched nothing dilute the score, because otherwise tapping a
-  // steady stream and ignoring the page scores 100% — the windows are wide
-  // enough now that some stray tap lands on every note. The first stray is
-  // free (a fumble is not a misread); after that the score thins out.
-  const overshoot = Math.max(0, extra - 1);
-  const pct = total ? Math.round(100*clean/(total + overshoot)) : 0;
+  const pct = total ? Math.round(100*clean/(total + extra)) : 0;
   const spread = errs.length
     ? Math.round(1000*errs.reduce((s,e) => s+e, 0)/errs.length) : null;
   const bias = signed.length
@@ -1136,7 +1164,7 @@ function syncControls(){
   prevBtn.disabled = busy || histIdx <= 0;
   nextBtn.disabled = busy;
   hearBtn.disabled = busy;
-  silentBtn.disabled = busy;
+
   document.getElementById('up').disabled   = busy || level >= 10;
   document.getElementById('down').disabled = busy || level <= 1;
   document.getElementById('bpmUp').disabled   = busy || tempo() >= BPM_MAX;
@@ -1250,8 +1278,11 @@ function paintSilent(){
   silentBtn.style.color = silent ? '#141418' : '';
 }
 silentBtn.addEventListener('click', () => {
-  if(run) return;
   silent = !silent;
+  if(metGain){
+    metGain.gain.cancelScheduledValues(0);
+    metGain.gain.value = silent ? 0 : 1;
+  }
   paintSilent(); save();
 });
 

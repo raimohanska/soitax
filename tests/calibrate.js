@@ -50,21 +50,32 @@ const HIDDEN_LATENCY = 0.095;   // 95ms the browser refuses to report
 // Play the pattern PERFECTLY, but every tap lands HIDDEN_LATENCY late because
 // that's when the player actually hears the beat.
 async function perfectAttempt(){
-  const U=12, spu=(60/58)/U;
+  const U=12, spu=(60/58)/U, BAR=48;
+
+  // Play the notes that are actually on the page. Blindly tapping four quarters
+  // is not an accurate player — level 1 bars contain rests, and every tap that
+  // lands on one now counts against the score as an extra.
+  const svg=doc.querySelector('#score svg');
+  const PAD_L=16, SPAN=320-16-20;
+  const onsets=[...svg.querySelectorAll('ellipse')]
+    .map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b)
+    .map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
+
   win.__advance(0.5);
   pev('pointerdown'); pev('pointerup');          // begin
   await sleep(50);
 
-  // read the notated pattern straight out of the SVG feedback-free render:
-  // instead, reconstruct from note x positions is fragile — so just play a
-  // steady stream of quarters, which is exactly level 1.
   win.__advance(4*U*spu + 0.12 + HIDDEN_LATENCY);
   await sleep(40);
-  for(let i=0;i<4;i++){
+  let cursor=0;
+  for(let k=0;k<onsets.length;k++){
+    const step=Math.max(0.02, onsets[k]*spu - cursor);
+    win.__advance(step); cursor+=step;
     pev('pointerdown');
-    win.__advance(12*spu*0.9);                   // hold ~ a full quarter
+    const gap=(((onsets[k+1] ?? BAR)-onsets[k])*spu)*0.9;
+    const hold=Math.max(0.02, Math.min(12*spu*0.9, gap));
+    win.__advance(hold); cursor+=hold;
     pev('pointerup');
-    win.__advance(12*spu*0.1);
   }
   win.__advance(25);
   await sleep(90);
