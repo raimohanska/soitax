@@ -18,6 +18,7 @@ const SUITES = [
   ['layout',          'rendered geometry'],
   ['vlevels',         'all levels render'],
   ['sustain',         'feedback lane'],
+  ['persist',         'settings survive a relaunch'],
   ['pwa',             'installable + offline contract'],
 ];
 

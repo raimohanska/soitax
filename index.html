@@ -27,7 +27,13 @@
     --mute:#6d6d75;
     --soft:#9a9aa2;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+  /* touch-action is NOT an inherited property. The spec says a touch intersects
+     the values up the ancestor chain, but iOS Safari has never been dependable
+     about that — setting it on body alone still left double-tap zoom alive on
+     the buttons. Declaring it on every element is the only version that holds.
+     `manipulation` keeps panning and pinch-zoom, kills only double-tap zoom. */
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;
+    touch-action:manipulation;-webkit-touch-callout:none;}
   html{background:#ffffff !important;color-scheme:light;}
   body{background:#ffffff !important;color:#141418;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
   #backdrop{position:fixed;inset:0;background:#ffffff;z-index:-1;}
@@ -963,6 +969,12 @@ window.addEventListener('pointerdown', onDown, true);
 window.addEventListener('pointerup', onUp, true);
 window.addEventListener('pointercancel', () => { gesture = null; release(); }, true);
 pad.addEventListener('contextmenu', e => e.preventDefault());
+// Backstop for iOS versions that zoom anyway: swallow the synthesised click
+// from a second tap inside the double-tap window. Safe ONLY on the pad, which
+// reads pointerdown/pointerup directly — the real <button>s do use `click`,
+// and killing theirs would eat a fast second press on tempo or level.
+pad.addEventListener('touchend', e => { e.preventDefault(); }, {passive:false});
+pad.addEventListener('dblclick', e => { e.preventDefault(); });
 window.addEventListener('keydown', e => {
   if(e.code === 'Space' && !e.repeat){
     e.preventDefault();
@@ -1124,9 +1136,22 @@ function maybeSuggestLevel(){
    7. LEVEL / PERSISTENCE / BOOT
    ══════════════════════════════════════════════════════════ */
 const KEY = 'pulse-v6';
+
+// `window.storage` only exists inside the Claude webview. In Safari — which is
+// where the app actually gets used, installed to a home screen — it is
+// undefined, so every get/set threw into the empty catch below and NOTHING was
+// ever remembered: not the level, not the tempo, not the learned latency, not
+// silent mode. Fall back to localStorage, matching the same async shape.
+const store = (window.storage && typeof window.storage.get === 'function')
+  ? window.storage
+  : {
+      get: async k => { const value = localStorage.getItem(k); return value === null ? null : {key:k, value}; },
+      set: async (k, value) => { localStorage.setItem(k, value); return {key:k, value}; },
+    };
+
 async function load(){
   try{
-    const r = await window.storage.get(KEY, false);
+    const r = await store.get(KEY, false);
     if(r && r.value){
       const v = JSON.parse(r.value);
       if(Number.isInteger(v.level)) level = Math.min(10, Math.max(1, v.level));
@@ -1138,7 +1163,7 @@ async function load(){
   }catch(e){}
 }
 const save = () => {
-  try{ window.storage.set(KEY, JSON.stringify({level, calMs, streak, userBpm, silent}), false); }catch(e){}
+  try{ store.set(KEY, JSON.stringify({level, calMs, streak, userBpm, silent}), false); }catch(e){}
 };
 
 function refreshLevel(){
