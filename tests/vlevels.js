@@ -49,7 +49,7 @@ async function shot(tag){
   const wrapped = `<svg xmlns="http://www.w3.org/2000/svg" width="${vw*2.6}" height="${vh*2.6}" viewBox="${vb}">
     <rect width="100%" height="100%" fill="#ffffff"/>
     ${raw.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')}</svg>`;
-  const f = `/home/claude/v_${tag}.png`;
+  const f = require('os').tmpdir()+`/v_${tag}.png`;
   await sharp(Buffer.from(wrapped)).png().toFile(f);
   const {data, info} = await sharp(f).raw().toBuffer({resolveWithObject:true});
   let lit=0;
@@ -75,7 +75,7 @@ setTimeout(async () => {
   const H = files.reduce((s,f)=>s+f.h+10,0);
   await sharp({create:{width:W,height:H,channels:3,background:'#101014'}})
     .composite(files.map((f,i)=>({input:f.f,left:0,top:files.slice(0,i).reduce((s,x)=>s+x.h+10,0)})))
-    .png().toFile(__dirname+'/all-levels.png');
+    .png().toFile(require('path').join(__dirname,'all-levels.png'));
   console.log(bad===0 ? '\nALL LEVELS RENDER VISIBLY' : `\n${bad} LEVELS BROKEN`);
   process.exit(bad?1:0);
 }, 160);

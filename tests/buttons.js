@@ -40,29 +40,26 @@ function state(){
 }
 // play a pattern well or badly
 async function attempt(good){
-  const U=12,spu=(60/(58+ (0)))/U, BAR=48;   // level 1 tempo
-  // Play what is written, not a blind stream of four quarters: a tap landing on
-  // a rest is an extra now, and enough of them drag a "good" run below the pass
-  // mark, so the streak never builds and the level-up prompt never appears.
-  const PAD_L=16, SPAN=320-16-20;
-  const onsets=[...d.querySelectorAll('#score svg ellipse')]
-    .map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b)
-    .map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
-
+  const U=12,spu=(60/(58+ (0)))/U;   // level 1 tempo
   tapPad(); await sleep(50);
   w.__advance(4*U*spu+0.2);
   await sleep(40);
   if(good){
-    const pad=G('pad');
+    // read actual note positions from the SVG so we only tap sounding notes
+    const svg=d.querySelector('#score svg');
+    const PAD_L=16, SPAN=320-16-20, BAR=48;
+    const heads=[...svg.querySelectorAll('ellipse')].map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b);
+    const onsets=heads.map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
     let cursor=0;
-    for(let k=0;k<onsets.length;k++){
-      const step=Math.max(0.02, onsets[k]*spu - cursor);
+    for(const onset of onsets){
+      const target=onset*spu;
+      const step=Math.max(0.005, target-cursor);
       w.__advance(step); cursor+=step;
+      const pad=G('pad');
       pad.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,clientX:150,clientY:700}));
-      const gap=(((onsets[k+1] ?? BAR)-onsets[k])*spu)*0.9;
-      const hold=Math.max(0.02, Math.min(12*spu*0.92, gap));
-      w.__advance(hold); cursor+=hold;
+      w.__advance(12*spu*0.92);
       pad.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true,clientX:150,clientY:700}));
+      cursor+=12*spu;
     }
   }
   w.__advance(30); await sleep(90);
@@ -82,18 +79,10 @@ async function attempt(good){
   ok(st.suggest===false,'forward arrow not highlighted yet');
 
   console.log('\n=== next/prev navigate history ===');
-  // Don't assert that two consecutive draws differ: level 1 has only about a
-  // dozen legal bars, so an identical redraw is ordinary luck, not a bug. Assert
-  // that "next" keeps drawing (some variety across several) and that history
-  // round-trips exactly — which holds whether or not neighbours happen to match.
-  const seen=new Set([fingerprint()]);
-  for(let i=0;i<8;i++){ click(G('nextBtn')); await sleep(30); seen.add(fingerprint()); }
-  console.log('  distinct patterns in 9 draws:', seen.size);
-  ok(seen.size>1,'next keeps drawing new patterns');
-
   const p1=fingerprint();
   click(G('nextBtn')); await sleep(40);
   const p2=fingerprint();
+  ok(p2!==p1,'next produced a different pattern');
   ok(G('prevBtn').disabled===false,'prev now enabled');
   click(G('prevBtn')); await sleep(40);
   ok(fingerprint()===p1,'prev returned to the previous pattern');
