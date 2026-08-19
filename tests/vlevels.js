@@ -60,7 +60,7 @@ async function shot(tag){
 
 setTimeout(async () => {
   const files=[]; let bad=0;
-  for(let lv=1; lv<=10; lv++){
+  for(let lv=1; lv<=11; lv++){
     if(lv>1) click(doc.getElementById('up'));
     click(doc.getElementById('nextBtn'));
     const r = await shot('lv'+lv);

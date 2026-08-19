@@ -239,7 +239,8 @@ const U = 12, BEATS = 4, BAR = U*BEATS;
 // arc — which is how you write a note that crosses a beat while keeping the
 // beat visible.
 const CELLS = [
-  // pedagogic order: quarter notes → long notes → beamed subdivisions → rests → ties/syncopation
+  // pedagogic order: pulse → long notes → beamed subdivisions → rests → ties/syncopation
+  //   → triplets → triplets & syncopation → sixteenths & rests → sixteenth ties
   {lv:1, w:5, notes:[[12,0]]},                                   // quarter
   {lv:1, w:2, notes:[[12,1]]},                                   // quarter rest
   {lv:2, w:3, notes:[[24,0]]},                                   // half
@@ -252,19 +253,35 @@ const CELLS = [
   {lv:6, w:3, notes:[[6,0],[6,0,1],[12,0]]},                     // 8 · 8~quarter
   {lv:6, w:2, notes:[[18,0],[6,0]]},                             // dotted quarter + eighth
   {lv:6, w:2, notes:[[6,0],[12,0],[6,0]]},                       // syncopation, untied
-  {lv:7, w:4, notes:[[3,0],[3,0],[3,0],[3,0]]},                  // four sixteenths
-  {lv:7, w:1, notes:[[6,0],[3,0],[3,0]]},
-  {lv:7, w:1, notes:[[3,0],[3,0],[6,0]]},
-  {lv:8, w:3, notes:[[4,0],[4,0],[4,0]], trip:true},             // triplet
+  // triplets — one new concept at a slower tempo; no ties yet
+  {lv:7, w:5, notes:[[4,0],[4,0],[4,0]], trip:true},             // triplet
+  // triplets & syncopation — tie or off-beat rest inside a triplet
+  {lv:8, w:3, notes:[[4,0],[4,0],[4,0,1]], trip:true},           // triplet, last tied
+  {lv:8, w:2, notes:[[4,0],[4,1],[4,0]], trip:true},             // triplet, rest on 2nd
+  // sixteenths + rests in groups of four (no ties yet)
+  {lv:9, w:3, notes:[[3,0],[3,0],[3,0],[3,0]]},                  // four 16ths
+  {lv:9, w:2, notes:[[6,0],[3,0],[3,0]]},                        // eighth + 2 sixteenths
+  {lv:9, w:2, notes:[[3,0],[3,0],[6,0]]},                        // 2 sixteenths + eighth
+  {lv:9, w:1, notes:[[3,1],[3,0],[3,0],[3,0]]},                  // rest + 3 sixteenths
+  {lv:9, w:1, notes:[[3,0],[3,1],[3,0],[3,0]]},                  // 16th, rest, 16th, 16th
+  {lv:9, w:1, notes:[[3,0],[3,0],[3,1],[3,0]]},                  // 16th, 16th, rest, 16th
+  {lv:9, w:1, notes:[[3,0],[3,0],[3,0],[3,1]]},                  // 3 sixteenths + rest
+  {lv:9, w:1, notes:[[3,1],[3,0],[3,0],[3,1]]},                  // rest + 2 sixteenths + rest
+  {lv:9, w:1, notes:[[3,0],[3,1],[3,1],[3,0]]},                  // 16th, 2 rests, 16th
+  // sixteenth ties & syncopation — tied note ends at beat boundary
+  {lv:10, w:3, notes:[[3,0],[3,0],[3,0],[3,0,1]]},               // four 16ths, last tied
+  {lv:10, w:3, notes:[[3,0],[3,0],[6,0,1]]},                     // 2 sixteenths + eighth tied
+  {lv:10, w:3, notes:[[6,0],[3,0],[3,0,1]]},                     // eighth + 2 sixteenths, last tied
 ];
 const cellLen = c => c.notes.reduce((s,n) => s+n[0], 0);
 
 const NAMES = ['quarter notes & rests','adds half notes',
                'adds beamed eighth pairs','adds half rests','adds off-beat eighths',
-               'ties & syncopation','adds sixteenths','adds triplets',
-               'mixed, three bars','everything, faster'];
-const barsAt = lv => lv<=1 ? 1 : lv<=6 ? 2 : lv<=8 ? 3 : 4;
-const bpmAt  = lv => 58 + (lv-1)*4;
+               'ties & syncopation','adds triplets','triplets & syncopation',
+               'adds sixteenths & rests','sixteenth ties & syncopation',
+               'everything, faster'];
+const barsAt = lv => lv<=1 ? 1 : lv<=7 ? 2 : lv<=10 ? 3 : 4;
+const bpmAt  = lv => [0, 58, 62, 66, 70, 74, 78, 58, 62, 66, 74, 90][lv];
 
 function pick(list){
   let t = 0; for(const c of list) t += c.w;
@@ -287,6 +304,8 @@ function makeBar(lv){
       at += dur;
     }
   }
+  // Level 7: triplets only — no ties or syncopation
+  if(lv === 7) for(const n of out) n.tie = false;
   // A tie needs something to tie to, and we never tie across a bar line here.
   if(out.length) out[out.length-1].tie = false;
   for(let i=0;i<out.length;i++){
@@ -302,14 +321,20 @@ function makeBars(lv){
   let out;
   // Rests can legitimately fill a whole bar, which would hand the reader a
   // pattern with nothing to play. Regenerate until there's something there.
-  for(let guard=0; guard<40; guard++){
+  // Every level that introduces a new concept forces it into every bar.
+  for(let guard=0; guard<80; guard++){
     out = Array.from({length:barsAt(lv)}, () => makeBar(lv));
     const sounding = out.flat().filter(n => !n.rest).length;
-    if(sounding >= 2) break;
+    if(sounding < 2) continue;
+    if(lv === 7  && !out.every(bar => bar.some(n => n.trip))) continue;
+    if(lv === 8  && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.tie))) continue;
+    if(lv === 9  && !out.every(bar => bar.some(n => n.dur <= 3))) continue;
+    if(lv === 10 && !out.every(bar => bar.some(n => n.tie && n.dur <= 3))) continue;
+    break;
   }
   // Ties over the bar line: the bar line is by definition a beat boundary, so
   // this is the same device as a within-bar tie, just spanning the measure.
-  if(lv >= 6){
+  if(lv >= 6 && lv !== 7){
     for(let i=0;i<out.length-1;i++){
       const last = out[i][out[i].length-1];
       const first = out[i+1][0];
@@ -1165,7 +1190,7 @@ function syncControls(){
   nextBtn.disabled = busy;
   hearBtn.disabled = busy;
 
-  document.getElementById('up').disabled   = busy || level >= 10;
+  document.getElementById('up').disabled   = busy || level >= 11;
   document.getElementById('down').disabled = busy || level <= 1;
   document.getElementById('bpmUp').disabled   = busy || tempo() >= BPM_MAX;
   document.getElementById('bpmDown').disabled = busy || tempo() <= BPM_MIN;
@@ -1176,7 +1201,7 @@ function syncControls(){
 
 /* ---- level-up suggestion ---------------------------------------------- */
 function maybeSuggestLevel(){
-  if(level >= 10 || streak < CLEAN_TO_ADVANCE || streak <= promoSnoozedAt){
+  if(level >= 11 || streak < CLEAN_TO_ADVANCE || streak <= promoSnoozedAt){
     promoEl.classList.remove('on');
     return;
   }
@@ -1208,7 +1233,7 @@ async function load(){
     const r = await store.get(KEY, false);
     if(r && r.value){
       const v = JSON.parse(r.value);
-      if(Number.isInteger(v.level)) level = Math.min(10, Math.max(1, v.level));
+      if(Number.isInteger(v.level)) level = Math.min(11, Math.max(1, v.level));
       if(typeof v.calMs === 'number') calMs = Math.max(-350, Math.min(350, v.calMs));
       if(Number.isInteger(v.streak)) streak = Math.max(0, v.streak);
       if(Number.isInteger(v.userBpm)) userBpm = v.userBpm ? Math.max(BPM_MIN, Math.min(BPM_MAX, v.userBpm)) : 0;
