@@ -96,8 +96,7 @@ async function trial(jitter, holdFrac, w, d){
   await sleep(150);
   for(let i=0;i<5;i++) d.getElementById('lvUp').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
   await sleep(40);
-  console.log('  level:', d.getElementById('lvTxt').textContent.trim(),
-              '| bars:', d.getElementById('meta').textContent.trim());
+  console.log('  level:', d.getElementById('lvTxt').textContent.trim());
   let crossed=0, tries=0;
   while(crossed===0 && tries<300){
     d.getElementById('nextBtn').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));

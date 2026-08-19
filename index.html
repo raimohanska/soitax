@@ -48,8 +48,6 @@
   /* ---- header ---- */
   header{display:flex;align-items:flex-end;justify-content:space-between;}
   .mark{font-size:13px;letter-spacing:.34em;text-transform:uppercase;color:#141418;font-weight:600;}
-  .meta{font-family:'JetBrains Mono','SF Mono',Menlo,Consolas,monospace;font-size:10.5px;letter-spacing:.06em;
-        color:#6d6d75;text-align:right;line-height:1.6;}
 
   /* ---- level ---- */
   .lv-deck{display:flex;align-items:stretch;gap:10px;padding-bottom:16px;border-bottom:1px solid #d4d4ce;}
@@ -209,7 +207,6 @@
 
   <header>
     <div class="mark">Soitax</div>
-    <div class="meta" id="meta"></div>
   </header>
 
   <div class="lv-deck">
@@ -1305,8 +1302,6 @@ const save = () => {
 function refreshLevel(){
   document.getElementById('lvTxt').innerHTML =
     '<span class="lv-num">Level ' + level + '</span><span class="lv-name">' + NAMES[level-1] + '</span>';
-  document.getElementById('meta').innerHTML =
-    barsAt(level) + (barsAt(level)>1?' BARS':' BAR');
   document.getElementById('bpmVal').textContent = tempo();
   document.getElementById('bpmDown').disabled = !!run || tempo() <= BPM_MIN;
   document.getElementById('bpmUp').disabled   = !!run || tempo() >= BPM_MAX;
