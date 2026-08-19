@@ -35,7 +35,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
   console.log('=== the app runs at all without window.storage ===');
   const w1=boot(null); const d1=w1.document;
-  await sleep(320);
+  await sleep(150);
   ok(w1.storage===undefined,'window.storage genuinely absent (Safari conditions)');
   ok(d1.querySelectorAll('#score svg').length>0,'notation still renders');
   ok(/sound on/i.test(d1.getElementById('silent').textContent),'defaults to sound on');
@@ -53,7 +53,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   console.log('\n=== and are read back on the next launch ===');
   // This is the bug the user hit: silent had to be re-picked every launch.
   const w2=boot(raw); const d2=w2.document;
-  await sleep(320);
+  await sleep(150);
   console.log('  toggle reads:', d2.getElementById('silent').textContent);
   ok(/silent/i.test(d2.getElementById('silent').textContent),
      'silent mode survived the relaunch');
@@ -61,7 +61,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   console.log('\n=== the rest of the state round-trips too ===');
   const w3=boot(JSON.stringify({level:4,calMs:120,streak:2,userBpm:96,silent:false}));
   const d3=w3.document;
-  await sleep(320);
+  await sleep(150);
   console.log('  level:',d3.getElementById('lvTxt').textContent.trim(),
               ' bpm:',d3.getElementById('bpmVal').textContent);
   ok(/Level 4/.test(d3.getElementById('lvTxt').textContent),'level restored');
@@ -75,7 +75,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       set:async(k,v)=>{mem[k]=v;window.__usedHostStorage=true;return{key:k,value:v}}};`),
     {runScripts:'dangerously',pretendToBeVisual:true,url:'https://example.com/'});
   const w4=dom.window,d4=w4.document;
-  await sleep(320);
+  await sleep(150);
   d4.getElementById('silent').dispatchEvent(new w4.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(w4.__usedHostStorage===true,'host storage used in preference to localStorage');

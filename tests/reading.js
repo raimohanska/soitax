@@ -25,11 +25,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 // Play the bar that is actually on screen. `holdMs` is how long each tap is
 // held; `jitterMs` is how far off the beat it lands, alternating early/late.
 // `spam` ignores the notation entirely and taps a steady stream of eighths.
-async function play({holdMs=150, jitterMs=0, spam=false}={}){
-  const dom=new JSDOM(html.replace('<script>','<script>'+stub),
-    {runScripts:'dangerously',pretendToBeVisual:true});
-  const w=dom.window,d=w.document;
-  await sleep(300);
+async function play(w, d, {holdMs=150, jitterMs=0, spam=false}={}){
   const G=id=>d.getElementById(id);
   const pad=G('pad');
   const down=()=>pad.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,clientX:150,clientY:700}));
@@ -71,18 +67,23 @@ async function play({holdMs=150, jitterMs=0, spam=false}={}){
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
 
+  const dom=new JSDOM(html.replace('<script>','<script>'+stub),
+    {runScripts:'dangerously',pretendToBeVisual:true});
+  const w=dom.window,d=w.document;
+  await sleep(150);
+
   console.log('=== an ordinary tap is not a mistake ===');
   // 150ms is a normal finger tap. It is nowhere near a quarter note, and that
   // is fine — the note was read and placed correctly.
   for(const holdMs of [120, 150, 250, 400]){
-    const r = await play({holdMs});
+    const r = await play(w, d, {holdMs});
     console.log(`  held ${String(holdMs+'ms').padEnd(6)} → ${String(r.pct+'%').padStart(4)}  onsets ${r.hits}  sustain ${r.sustain}`);
     ok(r.green, `a ${holdMs}ms tap on a correct read scores green (${r.pct}%)`);
   }
 
   console.log('\n=== reading well beats tapping precisely ===');
   for(const jitterMs of [60, 120]){
-    const r = await play({holdMs:150, jitterMs});
+    const r = await play(w, d, {holdMs:150, jitterMs});
     console.log(`  ±${String(jitterMs+'ms').padEnd(6)} → ${String(r.pct+'%').padStart(4)}  onsets ${r.hits}`);
     ok(r.green, `still green when every tap is ±${jitterMs}ms off the beat (${r.pct}%)`);
   }
@@ -90,12 +91,12 @@ async function play({holdMs=150, jitterMs=0, spam=false}={}){
   console.log('\n=== a short tap is a read, not a mistake ===');
   // Nothing the generator writes is longer than a half note, and those all count
   // as a click, so there is no hold length that fails on the low side any more.
-  const stab = await play({holdMs:30});
+  const stab = await play(w, d, {holdMs:30});
   console.log(`  stabbing        → ${stab.pct}%  sustain ${stab.sustain}`);
   ok(stab.green, `even a 30ms stab on a correct read is green (${stab.pct}%)`);
 
   console.log('\n=== but it is still possible to fail ===');
-  const spam = await play({holdMs:150, spam:true});
+  const spam = await play(w, d, {holdMs:150, spam:true});
   console.log(`  ignoring the page → ${spam.pct}%  onsets ${spam.hits} of ${spam.notes} notated`);
   ok(!spam.green, `tapping a steady stream regardless of what is written is not green (${spam.pct}%)`);
 

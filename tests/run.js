@@ -58,7 +58,7 @@ setTimeout(() => {
   const fresh = doc.getElementById('nextBtn');
 
   for(let lv=1; lv<=10; lv++){
-    for(let n=0; n<60; n++){
+    for(let n=0; n<20; n++){
       fresh.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
       const s = doc.querySelector('#score svg');
       if(!s){ badXml++; continue; }

@@ -22,7 +22,7 @@ const G=id=>d.getElementById(id);
 (async()=>{
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
-  await sleep(300);
+  await sleep(150);
 
   console.log('=== tempo control exists and is big enough to hit ===');
   const up=G('bpmUp'), down=G('bpmDown');

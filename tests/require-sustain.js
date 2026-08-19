@@ -15,13 +15,9 @@ window.AudioContext=AC;window.__advance=d=>{t+=d;};
 const mem={};window.storage={get:async k=>mem[k]?{key:k,value:mem[k]}:null,set:async(k,v)=>{mem[k]=v;return{key:k,value:v}}};})();
 `;
 
-async function trial(holdFactor){
-  const dom=new JSDOM(html.replace('<script>','<script>'+stub),
-    {runScripts:'dangerously',pretendToBeVisual:true});
-  const win=dom.window,doc=win.document;
+async function trial(holdFactor, win, doc){
   const pad=()=>doc.getElementById('pad');
   const pev=(t)=>pad().dispatchEvent(new win.MouseEvent(t,{bubbles:true,cancelable:true}));
-  await new Promise(r=>setTimeout(r,250));
 
   const U=12,spu=(60/58)/U, PAD_L=16, SPAN=320-16-20, BAR=48;
 
@@ -59,9 +55,14 @@ async function trial(holdFactor){
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
 
-  const good = await trial(1.0);
+  const dom=new JSDOM(html.replace('<script>','<script>'+stub),
+    {runScripts:'dangerously',pretendToBeVisual:true});
+  const win=dom.window,doc=win.document;
+  await new Promise(r=>setTimeout(r,150));
+
+  const good = await trial(1.0, win, doc);
   console.log('correct hold  :', JSON.stringify(good));
-  const stab = await trial(0.08);
+  const stab = await trial(0.08, win, doc);
   console.log('staccato stabs:', JSON.stringify(stab));
 
   const onNum = s => Number(String(s).split('/')[0]);

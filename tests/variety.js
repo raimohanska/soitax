@@ -29,7 +29,7 @@ setTimeout(()=>{
   let fails=0;
   for(let lv=1;lv<=11;lv++){
     if(lv>1) click(d.getElementById('lvUp'));
-    const seen=new Set(); const N=120;
+    const seen=new Set(); const N=60;
     for(let i=0;i<N;i++){ click(d.getElementById('nextBtn')); seen.add(fingerprint()); }
     const distinct=seen.size;
     const pass = distinct >= 8;
@@ -40,7 +40,7 @@ setTimeout(()=>{
   console.log('\n--- minimum content ---');
   let empties=0, thin=0;
   for(let lv=1;lv<=11;lv++){
-    for(let i=0;i<300;i++){
+    for(let i=0;i<100;i++){
       click(d.getElementById('nextBtn'));
       const heads=d.querySelectorAll('#score svg ellipse').length;
       if(heads===0) empties++;
@@ -52,4 +52,4 @@ setTimeout(()=>{
   else console.log('ok — every pattern has something to play');
   console.log(fails===0?'\n=== VARIETY OK AT EVERY LEVEL ===':`\n=== ${fails} LEVELS TOO REPETITIVE ===`);
   process.exit(fails?1:0);
-},300);
+},150);

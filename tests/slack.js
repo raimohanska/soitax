@@ -22,9 +22,7 @@ function boot(){
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 // play level 1 (quarters/rests) reading correctly but sloppily by `jitter` seconds
-async function trial(jitter, holdFrac){
-  const w=boot(), d=w.document;
-  await sleep(280);
+async function trial(jitter, holdFrac, w, d){
   const G=id=>d.getElementById(id);
   const pad=G('pad');
   const down=(x=150)=>pad.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,clientX:x,clientY:700}));
@@ -69,9 +67,12 @@ async function trial(jitter, holdFrac){
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
 
+  const w1=boot(), d1=w1.document;
+  await sleep(150);
+
   console.log('=== correct read, sloppy timing should PASS ===');
   for(const j of [0, 0.08, 0.15, 0.22]){
-    const r=await trial(j, 0.85);
+    const r=await trial(j, 0.85, w1, d1);
     const pass=r.pct>=80;
     if(!pass) fails++;
     console.log(`  jitter ±${(j*1000).toFixed(0).padStart(3)}ms → ${String(r.pct).padStart(3)}%  onsets ${r.onsets}  sustain ${r.sus}  ${pass?'ok':'FAIL'}`);
@@ -79,20 +80,20 @@ async function trial(jitter, holdFrac){
 
   console.log('\n=== sloppy sustain within reason should PASS ===');
   for(const h of [0.5, 0.75, 1.0, 1.6]){
-    const r=await trial(0.05, h);
+    const r=await trial(0.05, h, w1, d1);
     const pass=r.pct>=80;
     if(!pass) fails++;
     console.log(`  held ${(h*100).toFixed(0).padStart(4)}% of value → ${String(r.pct).padStart(3)}%  sustain ${r.sus}  ${pass?'ok':'FAIL'}`);
   }
 
   console.log('\n=== a genuinely wrong read must still FAIL ===');
-  const stab=await trial(0.05, 0.03);        // stabbing everything staccato
+  const stab=await trial(0.05, 0.03, w1, d1);        // stabbing everything staccato
   console.log(`  staccato stabs → ${stab.pct}%  sustain ${stab.sus}`);
   ok(stab.pct <= 100, 'staccato stabs on quarter notes now pass (they are clicks)');
 
   console.log('\n=== ties across the bar line ===');
   const w=boot(), d=w.document;
-  await sleep(280);
+  await sleep(150);
   for(let i=0;i<5;i++) d.getElementById('lvUp').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
   await sleep(40);
   console.log('  level:', d.getElementById('lvTxt').textContent.trim(),

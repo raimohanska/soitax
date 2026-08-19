@@ -78,4 +78,4 @@ setTimeout(async () => {
     .png().toFile(require('path').join(__dirname,'all-levels.png'));
   console.log(bad===0 ? '\nALL LEVELS RENDER VISIBLY' : `\n${bad} LEVELS BROKEN`);
   process.exit(bad?1:0);
-}, 160);
+}, 150);

@@ -109,4 +109,4 @@ setTimeout(async () => {
 
   console.log('\n' + (fails===0?'=== ALL PASSED ===':`=== ${fails} FAILURES ===`));
   process.exit(fails?1:0);
-}, 300);
+}, 150);

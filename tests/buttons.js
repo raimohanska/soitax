@@ -68,7 +68,7 @@ async function attempt(good){
 (async()=>{
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
-  await sleep(320);
+  await sleep(150);
 
   console.log('=== STATE: fresh pattern ===');
   let st=state(); console.log('  ',JSON.stringify(st));

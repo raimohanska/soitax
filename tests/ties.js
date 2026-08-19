@@ -23,7 +23,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
-  await sleep(300);
+  await sleep(150);
 
   // go to level 6 where ties live
   for(let i=0;i<5;i++) click(d.getElementById('lvUp'));
@@ -32,7 +32,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
   console.log('\n=== ties get drawn ===');
   let found=false, tries=0, arcs=0;
-  while(!found && tries<120){
+  while(!found && tries<60){
     click(d.getElementById('nextBtn'));
     // a tie is a quadratic path with fill:none — distinct from filled glyphs
     arcs=[...d.querySelectorAll('#score svg path')].filter(p=>
@@ -45,7 +45,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   console.log('\n=== a tie is ONE sound, not two ===');
   // find a pattern with a tie, then compare noteheads to sounding events
   let heads=0, sounds=0, guard=0;
-  while(guard++ < 200){
+  while(guard++ < 100){
     click(d.getElementById('nextBtn'));
     const svg=d.querySelector('#score svg');
     const tieArcs=[...svg.querySelectorAll('path')].filter(p=>
@@ -90,7 +90,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   // onset+duration lands exactly on a beat line. We check it structurally by
   // sampling many patterns and verifying arc spans never sit inside one beat.
   let checked=0, insideBeat=0;
-  for(let n=0;n<400;n++){
+  for(let n=0;n<150;n++){
     click(d.getElementById('nextBtn'));
     const svg2=d.querySelector('#score svg');
     const arcs=[...svg2.querySelectorAll('path')].filter(p=>

@@ -1,5 +1,5 @@
-// Runs every test and prints a summary. Exit code is non-zero if any fail.
-const { execFileSync } = require('child_process');
+// Runs every test in parallel and prints a summary. Exit code is non-zero if any fail.
+const { execFile } = require('child_process');
 
 const SUITES = [
   ['run',             'attempt lifecycle'],
@@ -23,24 +23,53 @@ const SUITES = [
   ['pwa',             'installable + offline contract'],
 ];
 
-let failed = [];
-for(const [file, desc] of SUITES){
-  process.stdout.write(file.padEnd(18) + desc.padEnd(38));
-  try{
-    const out = execFileSync('node', [__dirname + '/' + file + '.js'],
-      {encoding:'utf8', stdio:['ignore','pipe','pipe']});
-    const last = out.trim().split('\n').pop();
-    console.log(last.replace(/=/g,'').trim());
-  }catch(e){
-    const out = (e.stdout || '') + (e.stderr || '');
-    const bad = out.split('\n').filter(l => /FAIL/.test(l));
-    console.log('FAILED');
-    bad.slice(0,6).forEach(l => console.log('   ' + l.trim()));
-    failed.push(file);
-  }
+const CONCURRENCY = 8;
+
+function runSuite(file, desc) {
+  return new Promise(resolve => {
+    execFile('node', [__dirname + '/' + file + '.js'],
+      {encoding:'utf8', timeout:30000, stdio:['ignore','pipe','pipe']},
+      (err, stdout, stderr) => {
+        const out = (stdout || '') + (stderr || '');
+        const lines = out.trim().split('\n');
+        const last = (lines.pop() || '').replace(/=/g,'').trim();
+        const bad = lines.filter(l => /FAIL/.test(l));
+        resolve({ file, desc, ok: !err, summary: last, fails: bad });
+      });
+  });
 }
 
-console.log('\n' + (failed.length
-  ? failed.length + ' suite(s) failing: ' + failed.join(', ')
-  : 'all suites passing'));
-process.exit(failed.length ? 1 : 0);
+async function main() {
+  const results = new Array(SUITES.length);
+  let idx = 0;
+
+  async function worker() {
+    while (idx < SUITES.length) {
+      const i = idx++;
+      const [file, desc] = SUITES[i];
+      results[i] = await runSuite(file, desc);
+    }
+  }
+
+  const n = Math.min(CONCURRENCY, SUITES.length);
+  await Promise.all(Array.from({length: n}, () => worker()));
+
+  let failed = [];
+  for (const r of results) {
+    process.stdout.write(r.file.padEnd(18) + r.desc.padEnd(38));
+    if (r.ok) {
+      console.log(r.summary);
+    } else {
+      console.log('FAILED');
+      r.fails.slice(0,6).forEach(l => console.log('   ' + l.trim()));
+      failed.push(r.file);
+    }
+  }
+
+  console.log('\n' + (failed.length
+    ? failed.length + ' suite(s) failing: ' + failed.join(', ')
+    : 'all suites passing'));
+  process.exit(failed.length ? 1 : 0);
+}
+
+main();

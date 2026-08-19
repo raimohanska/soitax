@@ -90,5 +90,5 @@ setTimeout(() => {
     ok(Number(s2.getAttribute('height'))>40, `height still sane (${s2.getAttribute('height')})`);
     console.log('\n' + (fails===0 ? '=== ALL PASSED ===' : `=== ${fails} FAILURES ===`));
     process.exit(fails?1:0);
-  }, 400);
+}, 150);
 }, 400);

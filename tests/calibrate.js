@@ -91,7 +91,7 @@ async function perfectAttempt(){
 (async()=>{
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
-  await sleep(300);
+  await sleep(150);
 
   console.log('=== hi-hat metronome ===');
   win.__hats.length=0;

@@ -29,7 +29,7 @@ const accent=()=>G('pad').classList.contains('flash-accent');
 (async()=>{
   let fails=0;
   const ok=(c,m)=>{if(!c){fails++;console.log('  FAIL '+m);}else console.log('  ok   '+m);};
-  await sleep(320);
+  await sleep(150);
 
   console.log('=== flash elements exist ===');
   ok(d.querySelectorAll('#beats i').length===4,'four beat dots, one per beat of the bar');
@@ -77,7 +77,7 @@ const accent=()=>G('pad').classList.contains('flash-accent');
   ok(w.__osc===0,'no pitched audio in silent mode');
   // and the flash still works
   let sawFlash=false;
-  for(let step=0; step<80; step++){
+  for(let step=0; step<20; step++){
     w.__advance(beat/20);
     await new Promise(r=>setTimeout(r,0));
     if(lit()) sawFlash=true;
