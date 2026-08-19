@@ -23,8 +23,8 @@ const G=id=>d.getElementById(id);
 const tap=()=>{const p=G('pad');
   p.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,clientX:150,clientY:700}));
   p.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true,clientX:150,clientY:700}));};
-const lit=()=>G('pad').classList.contains('pulse')||G('pad').classList.contains('pulse-accent');
-const accent=()=>G('pad').classList.contains('pulse-accent');
+const lit=()=>G('pad').classList.contains('flash')||G('pad').classList.contains('flash-accent');
+const accent=()=>G('pad').classList.contains('flash-accent');
 
 (async()=>{
   let fails=0;

@@ -1,4 +1,4 @@
-# Pulse — test suite
+# Soitax — test suite
 
 These are the checks I ran against `rhythm-trainer.html`. They are plain Node
 scripts, **not Playwright**.

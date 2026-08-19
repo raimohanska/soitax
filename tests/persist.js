@@ -22,7 +22,7 @@ window.AudioContext=AC;window.__advance=d=>{t+=d;};})();`;
 // `seed` is written to localStorage before the app script runs — that is what a
 // relaunch looks like from the app's point of view.
 function boot(seed){
-  const pre = seed ? `localStorage.setItem('pulse-v6',${JSON.stringify(seed)});` : '';
+  const pre = seed ? `localStorage.setItem('soitax-v1',${JSON.stringify(seed)});` : '';
   const dom=new JSDOM(html.replace('<script>','<script>'+audio+pre),
     {runScripts:'dangerously',pretendToBeVisual:true,url:'https://example.com/'});
   return dom.window;
@@ -44,7 +44,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   d1.getElementById('silent').dispatchEvent(new w1.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(/silent/i.test(d1.getElementById('silent').textContent),'toggled to silent');
-  const raw=w1.localStorage.getItem('pulse-v6');
+  const raw=w1.localStorage.getItem('soitax-v1');
   console.log('  localStorage holds:', raw);
   ok(raw!==null,'something was actually persisted');
   const saved=JSON.parse(raw||'{}');
@@ -79,7 +79,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   d4.getElementById('silent').dispatchEvent(new w4.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(w4.__usedHostStorage===true,'host storage used in preference to localStorage');
-  ok(w4.localStorage.getItem('pulse-v6')===null,'localStorage left untouched in the webview');
+  ok(w4.localStorage.getItem('soitax-v1')===null,'localStorage left untouched in the webview');
 
   console.log('\n' + (fails===0?'=== ALL PASSED ===':`=== ${fails} FAILURES ===`));
   process.exit(fails?1:0);

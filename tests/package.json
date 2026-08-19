@@ -1,7 +1,7 @@
 {
-  "name": "pulse-tests",
+  "name": "soitax-tests",
   "private": true,
-  "description": "Test suite for the Pulse rhythm trainer",
+  "description": "Test suite for the Soitax rhythm trainer",
   "scripts": {
     "test": "node all.js"
   },

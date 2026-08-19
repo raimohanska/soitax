@@ -1,4 +1,4 @@
-# Pulse
+# Soitax
 
 A rhythm-notation reading trainer. It shows you a bar or four of rhythm, counts
 you in, and you tap what you read — holding each note for its written length.
@@ -26,7 +26,7 @@ wrong, because note length is half of what the notation is telling you.
 - **Latency self-calibration.** Phone audio output lags by ~100 ms and browsers
   mostly won't tell you by how much, which makes an accurate player look
   consistently late. It measures your median bias and corrects for it.
-- **Silent practice.** The page pulses on each beat, accented on beat one, so
+- **Silent practice.** The page flashes on each beat, accented on beat one, so
   you can practise with the sound off and still keep time.
 
 ## Controls
@@ -37,7 +37,7 @@ wrong, because note length is half of what the notation is telling you.
 | ‹ › | previous / next pattern (swipe works too) |
 | − BPM + | tempo, 34–168 |
 | Show me | play the rhythm and run a cursor over it |
-| Silent | mute everything; the beat flash carries the pulse |
+| Silent | mute everything; the beat flash carries the rhythm |
 
 Your level, tempo, and latency calibration are saved on the device.
 

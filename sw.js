@@ -1,7 +1,7 @@
 // Offline-first service worker. The app is one HTML file plus icons, so the
 // whole thing fits in a cache and works with no network at all — which is the
 // point of installing it to a home screen.
-const CACHE = 'pulse-v4';
+const CACHE = 'soitax-v1';
 const SHELL = [
   '.', 'index.html', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png',

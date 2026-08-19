@@ -64,7 +64,7 @@ const G=id=>d.getElementById(id);
   click(G('up')); await sleep(40);
   console.log('  after level change:', G('bpmVal').textContent);
   ok(Number(G('bpmVal').textContent)===chosen, 'user tempo is kept when the level changes');
-  const saved=JSON.parse(w.__mem['pulse-v6']);
+  const saved=JSON.parse(w.__mem['soitax-v1']);
   console.log('  persisted:', JSON.stringify(saved));
   ok(saved.userBpm===chosen, 'tempo written to storage');
 

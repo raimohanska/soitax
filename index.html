@@ -9,11 +9,11 @@
 <!-- so "Add to Home Screen" gives a full-screen app with no browser chrome -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Pulse">
+<meta name="apple-mobile-web-app-title" content="Soitax">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Pulse</title>
+<title>Soitax</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -133,13 +133,13 @@
   .pad.hit .pad-main{color:#fff;}
 
   /* ---- beat flash (silent practice) ----
-     The pulse lives on the pad itself, not the page — flashing the whole
+     The flash lives on the pad itself, not the page — flashing the whole
      screen was distracting; the button is where your finger already is. */
-  .pad.pulse,.pad.pulse-accent{transition:background 70ms linear;}
-  .pad.pulse{background:#ebebe6;}
-  .pad.pulse-accent{background:#dcdcd4;}
-  .pad[data-m="play"].pulse{background:#26262c;}
-  .pad[data-m="play"].pulse-accent{background:#323239;}
+  .pad.flash,.pad.flash-accent{transition:background 70ms linear;}
+  .pad.flash{background:#ebebe6;}
+  .pad.flash-accent{background:#dcdcd4;}
+  .pad[data-m="play"].flash{background:#26262c;}
+  .pad[data-m="play"].flash-accent{background:#323239;}
 
   /* ---- links ---- */
   .links{display:flex;justify-content:center;gap:26px;}
@@ -172,7 +172,7 @@
 <div class="wrap">
 
   <header>
-    <div class="mark">Pulse</div>
+    <div class="mark">Soitax</div>
     <div class="meta" id="meta"></div>
   </header>
 
@@ -239,7 +239,7 @@ const U = 12, BEATS = 4, BAR = U*BEATS;
 // arc — which is how you write a note that crosses a beat while keeping the
 // beat visible.
 const CELLS = [
-  // pedagogic order: pulse → long notes → beamed subdivisions → rests → ties/syncopation
+  // pedagogic order: quarter notes → long notes → beamed subdivisions → rests → ties/syncopation
   {lv:1, w:5, notes:[[12,0]]},                                   // quarter
   {lv:1, w:2, notes:[[12,1]]},                                   // quarter rest
   {lv:2, w:3, notes:[[24,0]]},                                   // half
@@ -823,7 +823,7 @@ function begin(kind){
   const end = start + bars.length*BAR*s;
   try{
     // Hi-hat metronome: four count-in beats, then it keeps going for the whole
-    // pattern so you always have the pulse to play against.
+    // pattern so you always have the beat to play against.
     const totalBeats = BEATS + bars.length*BEATS;
     for(let i=0;i<totalBeats;i++){
       hat(t0 + i*U*s, i % BEATS === 0);
@@ -848,7 +848,7 @@ function begin(kind){
   requestAnimationFrame(tick);
 }
 
-// Beat pulse: derived from the audio clock inside the existing loop, so the
+// Beat flash: derived from the audio clock inside the existing loop, so the
 // flash can never drift away from the click the way a separate timer would.
 const beatDots = [...document.querySelectorAll('#beats i')];
 
@@ -863,8 +863,8 @@ function paintBeat(run, now){
   }
   const lit = now < (run.flashUntil || 0);
   const accent = !!run.accent;
-  pad.classList.toggle('pulse', lit && !accent);
-  pad.classList.toggle('pulse-accent', lit && accent);
+  pad.classList.toggle('flash', lit && !accent);
+  pad.classList.toggle('flash-accent', lit && accent);
   const within = ((idx % BEATS) + BEATS) % BEATS;
   beatDots.forEach((d, i) => {
     d.classList.toggle('on', i === within && lit && !accent);
@@ -872,7 +872,7 @@ function paintBeat(run, now){
   });
 }
 function clearBeat(){
-  pad.classList.remove('pulse','pulse-accent');
+  pad.classList.remove('flash','flash-accent');
   beatDots.forEach(d => d.classList.remove('on','accent'));
 }
 
@@ -1189,7 +1189,7 @@ function maybeSuggestLevel(){
 /* ══════════════════════════════════════════════════════════
    7. LEVEL / PERSISTENCE / BOOT
    ══════════════════════════════════════════════════════════ */
-const KEY = 'pulse-v6';
+const KEY = 'soitax-v1';
 
 // `window.storage` only exists inside the Claude webview. In Safari — which is
 // where the app actually gets used, installed to a home screen — it is
