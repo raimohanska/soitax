@@ -65,7 +65,7 @@ setTimeout(() => {
   const svg = () => doc.querySelector('#score svg');
 
   console.log('=== beams are actually drawn (level 3 teaches them) ===');
-  for(let i=0;i<2;i++) ev(doc.getElementById('up'),'click');   // to level 3
+  for(let i=0;i<2;i++) ev(doc.getElementById('lvUp'),'click');   // to level 3
   // hunt for a pattern containing a beam group (level 1 favours eighth pairs)
   let beamFound = false, tries = 0, beamRects = 0;
   while(!beamFound && tries < 60){

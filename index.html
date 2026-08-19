@@ -52,17 +52,13 @@
         color:#6d6d75;text-align:right;line-height:1.6;}
 
   /* ---- level ---- */
-  .lv{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1px solid #d4d4ce;}
-  .lv-txt{flex:1;font-size:12px;color:#6d6d75;letter-spacing:.02em;}
-  .lv-txt b{color:#141418;font-weight:600;}
-  .stepper{display:flex;gap:6px;}
-  .stepper button{
-    width:32px;height:32px;border:1px solid #d4d4ce;background:#fff;border-radius:50%;
-    color:#141418;font-size:15px;cursor:pointer;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1;
-    display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s;
+  .lv-deck{display:flex;align-items:stretch;gap:10px;padding-bottom:16px;border-bottom:1px solid #d4d4ce;}
+  .lv-box{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border:1px solid #d4d4ce;border-radius:3px;background:#f7f7f5;padding:6px 12px;
   }
-  .stepper button:active{background:#141418;color:#fff;border-color:#141418;}
-  .stepper button:disabled{opacity:.3;}
+  .lv-box .lv-num{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#6d6d75;font-weight:600;}
+  .lv-box .lv-name{font-size:12px;color:#141418;font-weight:600;}
 
   .beats{display:flex;gap:8px;justify-content:center;height:10px;align-items:center;}
   .beats i{
@@ -165,10 +161,47 @@
     padding:8px 10px;cursor:pointer;
   }
   .promo-act #promoYes{background:#141418;color:#fff;border-color:#141418;font-weight:600;}
+
+  /* ---- welcome overlay ---- */
+  .welcome{
+    display:none;position:fixed;inset:0;z-index:100;background:rgba(255,255,255,.92);
+    justify-content:center;align-items:center;padding:24px;
+  }
+  .welcome.on{display:flex;}
+  .welcome-box{
+    max-width:360px;width:100%;border:1px solid #d4d4ce;border-radius:4px;background:#fff;
+    padding:28px 24px 22px;display:flex;flex-direction:column;gap:16px;
+  }
+  .welcome-box h2{font-size:15px;font-weight:600;color:#141418;text-align:center;letter-spacing:.02em;}
+  .welcome-box p{font-size:12.5px;line-height:1.55;color:#6d6d75;margin:0;}
+  .welcome-box .wb-notice{
+    border:1px solid #e3e3de;border-radius:3px;background:#f7f7f5;padding:12px 14px;
+    font-size:11.5px;line-height:1.5;color:#141418;
+  }
+  .welcome-box .wb-notice b{font-weight:600;}
+  .welcome-box .wb-dismiss{
+    align-self:center;border:1px solid #141418;background:#141418;color:#fff;border-radius:3px;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    padding:10px 28px;cursor:pointer;margin-top:4px;
+  }
+  .welcome-box .wb-dismiss:active{background:#3a3a42;border-color:#3a3a42;}
 </style>
 </head>
 <body>
 <div id="backdrop"></div>
+
+<div class="welcome" id="welcome">
+  <div class="welcome-box">
+    <h2>Welcome to Soitax</h2>
+    <p>Read the rhythm, tap the beat.</p>
+    <div class="wb-notice">
+      <b>Heads up:</b> Bluetooth audio adds ~100 ms of latency, which will make your taps register late. For the best experience, use <b>silent mode</b> (tap the "Sound on" button) or plug in <b>wired headphones</b>.
+    </div>
+    <button class="wb-dismiss" id="welcomeDismiss">Got it</button>
+  </div>
+</div>
+
 <div class="wrap">
 
   <header>
@@ -176,12 +209,10 @@
     <div class="meta" id="meta"></div>
   </header>
 
-  <div class="lv">
-    <div class="lv-txt" id="lvTxt"></div>
-    <div class="stepper">
-      <button id="down" aria-label="easier">−</button>
-      <button id="up" aria-label="harder">+</button>
-    </div>
+  <div class="lv-deck">
+    <button class="nav" id="lvDown" aria-label="easier">‹</button>
+    <div class="lv-box" id="lvTxt"></div>
+    <button class="nav" id="lvUp" aria-label="harder">›</button>
   </div>
 
   <div class="tempo">
@@ -293,7 +324,14 @@ function pick(list){
 // One bar: [{onset, dur, rest, trip, tie}] summing to exactly BAR.
 // `tie` means the following note continues this one rather than re-attacking.
 function makeBar(lv){
-  const pool = CELLS.filter(c => c.lv <= lv);
+  // Level 9 strips ties & triplets to focus on sixteenths alone;
+  // level 10 strips triplets (ties return); level 11 has everything.
+  const pool = CELLS.filter(c => {
+    if(c.lv > lv) return false;
+    if(lv === 9  && (c.lv === 6 || c.lv === 7)) return false;
+    if(lv === 10 && c.lv === 7) return false;
+    return true;
+  });
   const out = [];
   let at = 0;
   while(at < BAR){
@@ -304,8 +342,8 @@ function makeBar(lv){
       at += dur;
     }
   }
-  // Level 7: triplets only — no ties or syncopation
-  if(lv === 7) for(const n of out) n.tie = false;
+  // Levels 7 & 9: no ties — triplets only (7) or sixteenths only (9)
+  if(lv === 7 || lv === 9) for(const n of out) n.tie = false;
   // A tie needs something to tie to, and we never tie across a bar line here.
   if(out.length) out[out.length-1].tie = false;
   for(let i=0;i<out.length;i++){
@@ -334,7 +372,7 @@ function makeBars(lv){
   }
   // Ties over the bar line: the bar line is by definition a beat boundary, so
   // this is the same device as a within-bar tie, just spanning the measure.
-  if(lv >= 6 && lv !== 7){
+  if(lv >= 6 && lv !== 7 && lv !== 9){
     for(let i=0;i<out.length-1;i++){
       const last = out[i][out[i].length-1];
       const first = out[i+1][0];
@@ -1190,8 +1228,8 @@ function syncControls(){
   nextBtn.disabled = busy;
   hearBtn.disabled = busy;
 
-  document.getElementById('up').disabled   = busy || level >= 11;
-  document.getElementById('down').disabled = busy || level <= 1;
+  document.getElementById('lvUp').disabled   = busy || level >= 11;
+  document.getElementById('lvDown').disabled = busy || level <= 1;
   document.getElementById('bpmUp').disabled   = busy || tempo() >= BPM_MAX;
   document.getElementById('bpmDown').disabled = busy || tempo() <= BPM_MIN;
   // forward arrow is highlighted only when the last run went well
@@ -1228,6 +1266,20 @@ const store = (window.storage && typeof window.storage.get === 'function')
       set: async (k, value) => { localStorage.setItem(k, value); return {key:k, value}; },
     };
 
+/* ---- welcome overlay -------------------------------------------------- */
+const WELCOME_KEY = 'soitax-welcome-v1';
+async function showWelcomeIfNew(){
+  try{
+    const r = await store.get(WELCOME_KEY, false);
+    if(r && r.value) return;                     // already seen
+  }catch(e){}
+  document.getElementById('welcome').classList.add('on');
+}
+document.getElementById('welcomeDismiss').addEventListener('click', () => {
+  document.getElementById('welcome').classList.remove('on');
+  try{ store.set(WELCOME_KEY, '1', false); }catch(e){}
+});
+
 async function load(){
   try{
     const r = await store.get(KEY, false);
@@ -1247,7 +1299,7 @@ const save = () => {
 
 function refreshLevel(){
   document.getElementById('lvTxt').innerHTML =
-    '<b>Level ' + level + '</b> · ' + NAMES[level-1];
+    '<span class="lv-num">Level ' + level + '</span><span class="lv-name">' + NAMES[level-1] + '</span>';
   document.getElementById('meta').innerHTML =
     barsAt(level) + (barsAt(level)>1?' BARS':' BAR');
   document.getElementById('bpmVal').textContent = tempo();
@@ -1326,8 +1378,8 @@ document.getElementById('promoNo').addEventListener('click', () => {
   promoSnoozedAt = streak;      // don't nag again until they improve further
   save();
 });
-document.getElementById('up').addEventListener('click', () => shift(1));
-document.getElementById('down').addEventListener('click', () => shift(-1));
+document.getElementById('lvUp').addEventListener('click', () => shift(1));
+document.getElementById('lvDown').addEventListener('click', () => shift(-1));
 hearBtn.addEventListener('click', () => { if(!run) unlock().then(() => begin('show')); });
 
 // Register the offline worker only when served over http(s) and a manifest is
@@ -1342,6 +1394,7 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 load().then(() => {
   refreshLevel(); paintSilent(); fresh();
   paintPad('idle','Begin','tap to start · swipe for another');
+  showWelcomeIfNew();
   // The SVG is sized in real pixels, so it must be rebuilt when the width changes.
   let rt = null;
   const relayout = () => {

@@ -28,7 +28,7 @@ function fingerprint(){
 setTimeout(()=>{
   let fails=0;
   for(let lv=1;lv<=11;lv++){
-    if(lv>1) click(d.getElementById('up'));
+    if(lv>1) click(d.getElementById('lvUp'));
     const seen=new Set(); const N=120;
     for(let i=0;i<N;i++){ click(d.getElementById('nextBtn')); seen.add(fingerprint()); }
     const distinct=seen.size;

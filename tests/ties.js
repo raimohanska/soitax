@@ -26,7 +26,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await sleep(300);
 
   // go to level 6 where ties live
-  for(let i=0;i<5;i++) click(d.getElementById('up'));
+  for(let i=0;i<5;i++) click(d.getElementById('lvUp'));
   await sleep(50);
   console.log('  level:', d.getElementById('lvTxt').textContent.trim());
 

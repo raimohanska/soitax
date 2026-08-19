@@ -16,7 +16,7 @@ const dom=new JSDOM(html.replace('<script>','<script>'+stub),{runScripts:'danger
 const w=dom.window,d=w.document;
 const click=el=>el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
 setTimeout(async()=>{
-  for(let i=0;i<5;i++) click(d.getElementById('up'));
+  for(let i=0;i<5;i++) click(d.getElementById('lvUp'));
   // hunt for a pattern with a tie crossing the bar line
   let found=false;
   for(let n=0;n<300 && !found;n++){

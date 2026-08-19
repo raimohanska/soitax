@@ -33,7 +33,7 @@ function state(){
     main:G('padMain').textContent,
     prev:G('prevBtn').disabled, next:G('nextBtn').disabled,
     hear:G('hear').disabled,
-    up:G('up').disabled, down:G('down').disabled,
+    up:G('lvUp').disabled, down:G('lvDown').disabled,
     suggest:G('nextBtn').classList.contains('suggest'),
     promo:G('promo').classList.contains('on'),
   };

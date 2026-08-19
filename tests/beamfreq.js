@@ -22,7 +22,7 @@ setTimeout(()=>{
   const isBeam=r=>{const wd=+r.getAttribute('width'),h=+r.getAttribute('height');
     return wd>8&&h>2.5&&h<5;};
   for(let lv=1;lv<=11;lv++){
-    if(lv>1) click(d.getElementById('up'));
+    if(lv>1) click(d.getElementById('lvUp'));
     let withBeams=0;const N=200;
     for(let i=0;i<N;i++){
       click(d.getElementById('nextBtn'));

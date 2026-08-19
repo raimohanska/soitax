@@ -93,7 +93,7 @@ async function trial(jitter, holdFrac){
   console.log('\n=== ties across the bar line ===');
   const w=boot(), d=w.document;
   await sleep(280);
-  for(let i=0;i<5;i++) d.getElementById('up').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
+  for(let i=0;i<5;i++) d.getElementById('lvUp').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
   await sleep(40);
   console.log('  level:', d.getElementById('lvTxt').textContent.trim(),
               '| bars:', d.getElementById('meta').textContent.trim());

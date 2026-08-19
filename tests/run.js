@@ -54,7 +54,7 @@ setTimeout(() => {
   console.log('\n=== SVG well-formedness across all levels & many patterns ===');
   const { XMLSerializer } = window;
   let badXml = 0, checked = 0, glyphStats = {};
-  const up = doc.getElementById('up');
+  const up = doc.getElementById('lvUp');
   const fresh = doc.getElementById('nextBtn');
 
   for(let lv=1; lv<=10; lv++){
@@ -90,7 +90,7 @@ setTimeout(() => {
   // ---- interaction: begin an attempt, tap, finish ----
   console.log('\n=== attempt lifecycle ===');
   const pad = doc.getElementById('pad');
-  const down = doc.getElementById('down');
+  const down = doc.getElementById('lvDown');
   for(let i=0;i<9;i++) down.dispatchEvent(new window.MouseEvent('click',{bubbles:true})); // back to lv1
   ok(doc.getElementById('lvTxt').textContent.includes('Level 1'), 'stepped back to level 1');
 
@@ -104,7 +104,7 @@ setTimeout(() => {
   pd();
   setTimeout(() => {
     ok(pad.dataset.m === 'count' || pad.dataset.m === 'play', 'entered count-in after begin (mode=' + pad.dataset.m + ')');
-    ok(doc.getElementById('up').disabled, 'level buttons locked during run');
+    ok(doc.getElementById('lvUp').disabled, 'level buttons locked during run');
 
     // advance the fake clock through count-in into the pattern
     window.__advance(4.6);
@@ -116,7 +116,7 @@ setTimeout(() => {
       window.__advance(20);                            // run past the end
       setTimeout(() => {
         ok(pad.dataset.m === 'idle', 'returned to idle (mode=' + pad.dataset.m + ')');
-        ok(!doc.getElementById('up').disabled, 'level buttons unlocked after run');
+        ok(!doc.getElementById('lvUp').disabled, 'level buttons unlocked after run');
         ok(doc.getElementById('padPct').classList.contains('on'), 'result shown on the pad');
         ok(window.__lastGrade.hits.includes('/'), 'hits reported: ' + window.__lastGrade.hits);
         const lane=[...doc.querySelectorAll('#score svg rect')].filter(r=>{

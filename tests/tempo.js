@@ -61,7 +61,7 @@ const G=id=>d.getElementById(id);
 
   console.log('\n=== tempo persists and survives level changes ===');
   const chosen=Number(G('bpmVal').textContent);
-  click(G('up')); await sleep(40);
+  click(G('lvUp')); await sleep(40);
   console.log('  after level change:', G('bpmVal').textContent);
   ok(Number(G('bpmVal').textContent)===chosen, 'user tempo is kept when the level changes');
   const saved=JSON.parse(w.__mem['soitax-v1']);

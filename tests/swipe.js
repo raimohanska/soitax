@@ -42,7 +42,7 @@ function fingerprint(){
      /next/i.test(next.getAttribute('aria-label')||''),
      'nav buttons carry descriptive labels');
   // level 1 only has 16 possible bars, so use a level with real variety
-  for(let i=0;i<2;i++) click(d.getElementById('up'));
+  for(let i=0;i<2;i++) click(d.getElementById('lvUp'));
   await sleep(40);
 
   console.log('\n=== swipe across the pad changes pattern, does NOT start ===');

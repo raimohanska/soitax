@@ -61,7 +61,7 @@ async function shot(tag){
 setTimeout(async () => {
   const files=[]; let bad=0;
   for(let lv=1; lv<=11; lv++){
-    if(lv>1) click(doc.getElementById('up'));
+    if(lv>1) click(doc.getElementById('lvUp'));
     click(doc.getElementById('nextBtn'));
     const r = await shot('lv'+lv);
     const inkPerHead = r.heads ? Math.round(r.lit/r.heads) : 0;

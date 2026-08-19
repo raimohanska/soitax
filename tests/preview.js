@@ -32,7 +32,7 @@ setTimeout(async () => {
   ];
 
   const fresh = doc.getElementById('nextBtn');
-  const up = doc.getElementById('up');
+  const up = doc.getElementById('lvUp');
   const shots = [];
 
   // sample a few levels: 1 (eighths+quarters), 6 (sixteenths), 7 (triplets), 8 (half notes)
