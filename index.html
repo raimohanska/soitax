@@ -310,8 +310,8 @@ const NAMES = ['quarter notes & rests','adds half notes',
                'adds beamed eighth pairs','adds half rests','adds off-beat eighths',
                'ties & syncopation','adds triplets','triplets & syncopation',
                'adds sixteenths & rests','sixteenth ties & syncopation',
-               'everything, faster'];
-const barsAt = lv => lv<=1 ? 1 : lv<=7 ? 2 : lv<=10 ? 3 : 4;
+               'sixteenths & triplets'];
+const barsAt = lv => lv<=1 ? 1 : lv<=7 ? 2 : 3;
 const bpmAt  = lv => [0, 58, 62, 66, 70, 74, 78, 58, 62, 66, 74, 90][lv];
 
 function pick(list){
@@ -1335,7 +1335,7 @@ function goPrev(){
 }
 function shift(d){
   if(run) return;
-  const n = Math.min(10, Math.max(1, level+d));
+  const n = Math.min(11, Math.max(1, level+d));
   if(n === level) return;
   level = n;
   streak = 0; promoSnoozedAt = 0;      // a new level earns its own streak
