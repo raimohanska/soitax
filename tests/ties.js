@@ -116,6 +116,32 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   ok(checked>0, 'found tie arcs to examine');
   ok(insideBeat===0, 'no tie is confined to one beat (all cross a beat line)');
 
+  console.log('\n=== beat 3 midpoint is always visible ===');
+  // In 4/4 the bar midpoint (beat 3) must have a notehead or rest boundary
+  // so the eye can locate it. No single note should span across it.
+  const PAD_L2=16, SPAN2=320-16-20, BAR2=48, U2=12;
+  const toX2=u=>PAD_L2+(u/BAR2)*SPAN2;
+  const midX=toX2(U2*2);                     // beat 3 pixel position
+  let midViolations=0;
+  for(let n=0;n<150;n++){
+    click(d.getElementById('nextBtn'));
+    const svg2=d.querySelector('#score svg');
+    // noteheads are ellipses; rests are paths near the staff centre (BASE=62)
+    const heads=[...svg2.querySelectorAll('ellipse')]
+      .map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b);
+    const rests=[...svg2.querySelectorAll('path')]
+      .map(p=>{
+        const m=(p.getAttribute('d')||'').match(/M([\d.\-]+)/);
+        return m?+m[1]:null;
+      }).filter(x=>x!==null);
+    const all=[...heads,...rests].sort((a,b)=>a-b);
+    if(!all.length) continue;
+    const closest=Math.min(...all.map(h=>Math.abs(h-midX)));
+    if(closest > 4) midViolations++;
+  }
+  console.log(`  patterns checked: 150   beat-3 missing: ${midViolations}`);
+  ok(midViolations===0, 'beat 3 always has a notehead or rest boundary');
+
   console.log('\n=== paint audit still clean ===');
   const svg=d.querySelector('#score svg');
   const raw=new w.XMLSerializer().serializeToString(svg);

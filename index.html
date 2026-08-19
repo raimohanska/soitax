@@ -325,12 +325,14 @@ function pick(list){
 
 // One bar: [{onset, dur, rest, trip, tie}] summing to exactly BAR.
 // `tie` means the following note continues this one rather than re-attacking.
+// Notes and rests are split at beat 3 (the bar midpoint) so the eye can
+// always locate it — a half note at beat 2 becomes two tied quarters, etc.
 function makeBar(lv){
   // Level 9 strips ties & triplets to focus on sixteenths alone;
   // level 10 strips triplets (ties return); level 11 has everything.
   const pool = CELLS.filter(c => {
     if(c.lv > lv) return false;
-    if(lv === 9  && (c.lv === 6 || c.lv === 7)) return false;
+    if(lv === 9  && (c.lv === 6 || c.lv === 7 || c.lv === 8)) return false;
     if(lv === 10 && c.lv === 7) return false;
     return true;
   });
@@ -355,6 +357,9 @@ function makeBar(lv){
     // inside one beat is just a quarter note badly spelled.
     if((out[i].onset + out[i].dur) % U !== 0) out[i].tie = false;
   }
+  // A note or rest that straddles beat 3 hides the bar midpoint. Split it
+  // so the eye has a notehead (or rest boundary) to anchor on at beat 3.
+  splitMidpointViolations(out);
   return out;
 }
 function makeBars(lv){
@@ -389,6 +394,37 @@ function makeBars(lv){
     if(flat[i].tie && (i+1 >= flat.length || flat[i+1].rest)) flat[i].tie = false;
   }
   return out;
+}
+
+// In 4/4 the bar midpoint (beat 3, u=24) must always be visible. A note or
+// rest that starts at beat 2 and extends past beat 3 silently swallows the
+// midpoint with no visual marker. Split it so a notehead or rest boundary
+// lands exactly on beat 3. A half note at beat 2 becomes two tied quarters;
+// a dotted quarter becomes a quarter tied to an eighth; a half rest becomes
+// two quarter rests.  Only cells from CELLS can produce durations > U, and
+// the only candidates are the half note (24), dotted quarter (18), and half
+// rest (24) — all at exactly 1 beat or 2 beats, so one split suffices.
+function splitMidpointViolations(bar){
+  const MID = U * 2;               // beat 3 onset (u=24)
+  let i = 0;
+  while(i < bar.length){
+    const n = bar[i];
+    if(n.onset + n.dur <= MID || n.onset >= MID){ i++; continue; }
+    const first = MID - n.onset;
+    const second = n.dur - first;
+    if(n.rest){
+      bar.splice(i, 1,
+        {onset:n.onset, dur:first, rest:true, trip:n.trip, tie:false},
+        {onset:MID,     dur:second, rest:true, trip:n.trip, tie:false});
+    } else {
+      bar.splice(i, 1,
+        {onset:n.onset, dur:first, rest:false, trip:n.trip, tie:true},
+        {onset:MID,     dur:second, rest:false, trip:n.trip, tie:false});
+    }
+    i += 2;
+    while(i < bar.length){ bar[i].onset = bar[i-1].onset + bar[i-1].dur; i++; }
+    i = 0;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
