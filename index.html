@@ -873,6 +873,9 @@ let streak = 0;                // consecutive clean runs at this level
 let promoSnoozedAt = 0;        // streak value when the suggestion was dismissed
 const CLEAN_TO_ADVANCE = 3;    // clean runs before we suggest levelling up
 const BPM_MIN = 34, BPM_MAX = 168, BPM_STEP = 4;
+let cooldownUntil = 0;         // ctx() time before which a fresh tap won't start a round
+const RESTART_COOLDOWN = 0.6;  // seconds after a run ends — guards against an accidental
+                                // tap right as the result lands on the pad
 let lastMain = '', lastSub = '', lastMode = '';
 
 function paintPad(mode, main, sub){
@@ -1003,6 +1006,10 @@ function tick(){
     closeOpenTap(endedAt);                   // a note still held at the end counts
     if(voice){ voice(); voice = null; }      // never leave a note ringing
     pad.classList.remove('hit');
+    // Anchored to the run's scheduled end, not to `endedAt` (when tick() happened to
+    // notice) — a stalled/backgrounded tab can make endedAt overshoot by a lot, and
+    // the cooldown shouldn't grow just because nobody was looking for a while.
+    cooldownUntil = end + RESTART_COOLDOWN;
     refreshLevel();
     if(done.kind === 'attempt'){
       grade(done);        // sets `passed` and calls syncControls itself
@@ -1045,7 +1052,7 @@ function registerTap(){
 }
 
 function beginAttempt(){
-  if(run || launching || !bars.length) return;
+  if(run || launching || !bars.length || ctx().currentTime < cooldownUntil) return;
   launching = true;
   unlock().then(() => { begin('attempt'); launching = false; },
                 () => { launching = false; });
