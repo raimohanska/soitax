@@ -4,8 +4,7 @@ A rhythm-notation reading trainer. It shows you a bar or four of rhythm, counts
 you in, and you tap what you read — holding each note for its written length.
 One self-contained HTML file, no build step, no dependencies at runtime.
 
-**[Open it](index.html)** · installs to your phone's home screen · works fully
-offline once loaded.
+**[raimohanska.github.io/soitax](https://raimohanska.github.io/soitax/)** — open it on your phone, add to home screen, works fully offline.
 
 ## What it trains
 
@@ -43,7 +42,7 @@ Your level, tempo, and latency calibration are saved on the device.
 
 ## Putting it on your phone
 
-Open the hosted URL in **Safari** (not in another app's browser — iOS only offers
+Open [raimohanska.github.io/soitax](https://raimohanska.github.io/soitax/) in **Safari** (not in another app's browser — iOS only offers
 this from Safari itself), then **Share → Add to Home Screen**.
 
 It launches full-screen with no browser chrome, and a service worker caches the
