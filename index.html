@@ -381,6 +381,7 @@ function makeBars(lv){
     if(lv === 8  && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.tie))) continue;
     if(lv === 9  && !out.every(bar => bar.some(n => n.dur <= 3))) continue;
     if(lv === 10 && !out.every(bar => bar.some(n => n.tie && n.dur <= 3))) continue;
+    if(lv === 11 && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.dur <= 3))) continue;
     break;
   }
   // Ties over the bar line: the bar line is by definition a beat boundary, so
