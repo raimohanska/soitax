@@ -570,7 +570,10 @@ const restHalf = x =>
 function restFor(x, dur){
   if(dur >= 24) return restHalf(x);
   if(dur >= 12) return restQuarter(x);
-  if(dur >= 6)  return restEighth(x, 1);
+  // dur=4 is a triplet-eighth rest: an eighth slot inside a triplet, so it
+  // gets an eighth glyph (one hook), not the sixteenth glyph the fallthrough
+  // would give it.
+  if(dur >= 6 || dur === 4)  return restEighth(x, 1);
   return restEighth(x, 2);
 }
 
@@ -601,11 +604,6 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
       s += `<rect x="${a}" y="${beamTop+BEAM_GAP}" width="${Math.max(b-a, 7)}"
               height="${BEAM_T}" fill="${C_INK}"/>`;
     }
-    if(bar[g[0]].trip){
-      const mid = (x1+x2)/2;
-      s += `<text x="${mid}" y="${beamTop-7}" fill="${C_MUTE}" font-size="10"
-              font-family="Inter,sans-serif" font-style="italic" text-anchor="middle">3</text>`;
-    }
   }
 
   // ties: an arc under the noteheads (stems are up, so the curve sits below)
@@ -613,6 +611,30 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
   const arc = (x1, x2) =>
     `<path d="M${x1} ${tieY} Q ${(x1+x2)/2} ${tieDip} ${x2} ${tieY}"
        fill="none" stroke="${C_INK}" stroke-width="1.7" stroke-linecap="round"/>`;
+
+  // Triplet "3" over runs that have no beam to hang it from: a triplet with a
+  // rest in the middle never forms a beam group (rests break beams), so the
+  // marker above a beam never appears. Scan for same-beat runs of trip events
+  // and drop a "3" centred over each.
+  {
+    let run = null;
+    const flushTrip = () => {
+      if(run && run.length){
+        const mid = (xAt(run[0].onset) + xAt(run[run.length-1].onset)) / 2;
+        s += `<text x="${mid}" y="${BASE - STEM - 7}" fill="${C_MUTE}" font-size="10"
+                font-family="Inter,sans-serif" font-style="italic" text-anchor="middle">3</text>`;
+      }
+      run = null;
+    };
+    bar.forEach(n => {
+      if(!n.trip){ flushTrip(); return; }
+      if(run && Math.floor(run[0].onset/U) === Math.floor(n.onset/U)) run.push(n);
+      else { flushTrip(); run = [n]; }
+    });
+    flushTrip();
+  }
+
+  // ties: an arc under the noteheads (stems are up, so the curve sits below)
 
   bar.forEach((n, i) => {
     if(!n.tie) return;
@@ -894,6 +916,7 @@ function clearResult(){
 }
 
 let level = 1, bars = [], run = null, taps = [], launching = false;
+let DEBUG_BARS = true;           // temporary: dump pattern data to console
 let calMs = 0;                 // learned output-latency compensation
 let hist = [], histIdx = -1;   // pattern history for prev/next
 let userBpm = 0;               // 0 = follow the level default
@@ -1386,6 +1409,21 @@ function refreshLevel(){
 // Pattern history, so the left arrow can go back to something you want to retry.
 function showPattern(b){
   bars = b;
+  if(DEBUG_BARS){
+    console.log('=== level ' + level + ' (' + NAMES[level-1] + ') ===');
+    b.forEach((bar, bi) => {
+      console.log('bar ' + bi + ': ' + JSON.stringify(bar.map(n =>
+        (n.rest ? 'r' : 'n') + n.dur + (n.tie ? '~' : '') + (n.trip ? '*' : '') + '@' + n.onset)));
+      for(let beat=0; beat<BEATS; beat++){
+        let total = 0;
+        for(const n of bar){
+          const o = Math.min(n.onset+n.dur, (beat+1)*U) - Math.max(n.onset, beat*U);
+          if(o > 0) total += o;
+        }
+        console.log('  beat ' + beat + ': ' + total + ' units (max ' + U + ')');
+      }
+    });
+  }
   clearResult();
   passed = false;
   promoEl.classList.remove('on');
