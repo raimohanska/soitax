@@ -925,7 +925,6 @@ function clearResult(){
 }
 
 let level = 1, bars = [], run = null, taps = [], launching = false;
-let DEBUG_BARS = true;           // temporary: dump pattern data to console
 let calMs = 0;                 // learned output-latency compensation
 let hist = [], histIdx = -1;   // pattern history for prev/next
 let userBpm = 0;               // 0 = follow the level default
@@ -1418,21 +1417,6 @@ function refreshLevel(){
 // Pattern history, so the left arrow can go back to something you want to retry.
 function showPattern(b){
   bars = b;
-  if(DEBUG_BARS){
-    console.log('=== level ' + level + ' (' + NAMES[level-1] + ') ===');
-    b.forEach((bar, bi) => {
-      console.log('bar ' + bi + ': ' + JSON.stringify(bar.map(n =>
-        (n.rest ? 'r' : 'n') + n.dur + (n.tie ? '~' : '') + (n.trip ? '*' : '') + '@' + n.onset)));
-      for(let beat=0; beat<BEATS; beat++){
-        let total = 0;
-        for(const n of bar){
-          const o = Math.min(n.onset+n.dur, (beat+1)*U) - Math.max(n.onset, beat*U);
-          if(o > 0) total += o;
-        }
-        console.log('  beat ' + beat + ': ' + total + ' units (max ' + U + ')');
-      }
-    });
-  }
   clearResult();
   passed = false;
   promoEl.classList.remove('on');
