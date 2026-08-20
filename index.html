@@ -144,6 +144,11 @@
   }
   .links button:active{color:#141418;border-color:#141418;}
   .links button:disabled{opacity:.3;}
+  .stop-btn{
+    border:1.5px solid #141418 !important;border-radius:3px !important;
+    color:#141418 !important;padding:4px 10px !important;
+  }
+  .stop-btn:active{background:#141418;color:#fff !important;}
 
   /* ---- level-up suggestion ---- */
   .promo{
@@ -242,6 +247,7 @@
 
   <div class="links">
     <button id="hear">Show me</button>
+    <button id="stopBtn" class="stop-btn" style="display:none">Stop</button>
     <button id="silent">Sound on</button>
   </div>
 
@@ -1272,6 +1278,8 @@ function syncControls(){
   prevBtn.disabled = busy || histIdx <= 0;
   nextBtn.disabled = busy;
   hearBtn.disabled = busy;
+  hearBtn.style.display = busy ? 'none' : '';
+  document.getElementById('stopBtn').style.display = busy ? '' : 'none';
 
   document.getElementById('lvUp').disabled   = busy || level >= 11;
   document.getElementById('lvDown').disabled = busy || level <= 1;
@@ -1424,6 +1432,18 @@ document.getElementById('promoNo').addEventListener('click', () => {
 document.getElementById('lvUp').addEventListener('click', () => shift(1));
 document.getElementById('lvDown').addEventListener('click', () => shift(-1));
 hearBtn.addEventListener('click', () => { if(!run) unlock().then(() => begin('show')); });
+document.getElementById('stopBtn').addEventListener('click', () => {
+  if(!run) return;
+  release();
+  run = null;
+  movePlayhead(null);
+  clearBeat();
+  if(metGain){ metGain.disconnect(); metGain = null; }
+  pad.classList.remove('hit');
+  refreshLevel();
+  syncControls();
+  paintPad('idle','Begin','tap to start · swipe for another');
+});
 
 // Register the offline worker only when served over http(s) and a manifest is
 // reachable. Opened as a bare file (or inside an app webview) this is skipped
