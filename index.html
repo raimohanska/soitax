@@ -469,11 +469,20 @@ function beamGroups(bar){
   let cur = [];
   const flush = () => { if(cur.length > 1) groups.push(cur); cur = []; };
   bar.forEach((n, i) => {
-    if(n.rest || n.dur >= U){ flush(); return; }
+    if(n.dur >= U){ flush(); return; }
+    if(n.rest){
+      // Inside a triplet a rest doesn't break the beam: the notes on either
+      // side still share one beam spanning over the rest. Any other rest does.
+      if(cur.length && n.trip && bar[cur[cur.length-1]].trip) return;
+      flush(); return;
+    }
     if(!cur.length){ cur = [i]; return; }
     const p = bar[cur[cur.length-1]];
     const sameBeat = Math.floor(n.onset/U) === Math.floor(p.onset/U);
-    if(sameBeat && p.onset + p.dur === n.onset) cur.push(i);
+    // Triplet notes bridge a rest that sits between them; otherwise notes must
+    // be adjacent (p.onset + p.dur === n.onset) to share a beam.
+    const tripBridge = n.trip && p.trip && sameBeat;
+    if(sameBeat && (p.onset + p.dur === n.onset || tripBridge)) cur.push(i);
     else { flush(); cur = [i]; }
   });
   flush();
