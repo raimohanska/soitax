@@ -318,9 +318,10 @@ const NAMES = ['quarter notes & rests','adds half notes',
                'adds beamed eighth pairs','adds half rests','adds off-beat eighths',
                'ties & syncopation','adds triplets','triplets & syncopation',
                'adds sixteenths & rests','sixteenth ties & syncopation',
-               'sixteenths & triplets'];
+               'sixteenths & triplets','grand mix'];
+const MAX_LEVEL = NAMES.length;
 const barsAt = lv => lv<=1 ? 1 : lv<=7 ? 2 : 3;
-const bpmAt  = lv => [0, 58, 62, 66, 70, 74, 78, 58, 62, 66, 74, 90][lv];
+const bpmAt  = lv => [0, 58, 62, 66, 70, 74, 78, 58, 62, 66, 74, 90, 96][lv];
 
 function pick(list){
   let t = 0; for(const c of list) t += c.w;
@@ -382,6 +383,7 @@ function makeBars(lv){
     if(lv === 9  && !out.every(bar => bar.some(n => n.dur <= 3))) continue;
     if(lv === 10 && !out.every(bar => bar.some(n => n.tie && n.dur <= 3))) continue;
     if(lv === 11 && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.dur <= 3))) continue;
+    if(lv === MAX_LEVEL && !out.every(bar => bar.length >= 12)) continue;
     break;
   }
   // Ties over the bar line: the bar line is by definition a beat boundary, so
@@ -392,7 +394,16 @@ function makeBars(lv){
       const first = out[i+1][0];
       if(last.rest || first.rest || last.tie) continue;
       if(last.dur >= 24 || first.dur >= 24) continue;   // keep it to short values
-      if(Math.random() < 0.3) last.tie = true;
+      if(Math.random() < (lv >= MAX_LEVEL ? 0.7 : 0.3)) last.tie = true;
+    }
+  }
+  // Level 12: within-bar ties at beat boundaries
+  if(lv >= MAX_LEVEL){
+    for(let i=0;i<out.length-1;i++){
+      if(out[i].tie || out[i].rest || out[i+1].rest) continue;
+      if(out[i].dur >= 24 || out[i+1].dur >= 24) continue;
+      if((out[i].onset + out[i].dur) % U !== 0) continue;
+      if(Math.random() < 0.4) out[i].tie = true;
     }
   }
   // final sweep: a tie must have a sounding note to land on
@@ -1282,7 +1293,7 @@ function syncControls(){
   hearBtn.style.display = busy ? 'none' : '';
   document.getElementById('stopBtn').style.display = busy ? '' : 'none';
 
-  document.getElementById('lvUp').disabled   = busy || level >= 11;
+  document.getElementById('lvUp').disabled   = busy || level >= MAX_LEVEL;
   document.getElementById('lvDown').disabled = busy || level <= 1;
   document.getElementById('bpmUp').disabled   = busy || tempo() >= BPM_MAX;
   document.getElementById('bpmDown').disabled = busy || tempo() <= BPM_MIN;
@@ -1293,7 +1304,7 @@ function syncControls(){
 
 /* ---- level-up suggestion ---------------------------------------------- */
 function maybeSuggestLevel(){
-  if(level >= 11 || streak < CLEAN_TO_ADVANCE || streak <= promoSnoozedAt){
+  if(level >= MAX_LEVEL || streak < CLEAN_TO_ADVANCE || streak <= promoSnoozedAt){
     promoEl.classList.remove('on');
     return;
   }
@@ -1339,7 +1350,7 @@ async function load(){
     const r = await store.get(KEY, false);
     if(r && r.value){
       const v = JSON.parse(r.value);
-      if(Number.isInteger(v.level)) level = Math.min(11, Math.max(1, v.level));
+      if(Number.isInteger(v.level)) level = Math.min(MAX_LEVEL, Math.max(1, v.level));
       if(typeof v.calMs === 'number') calMs = Math.max(-350, Math.min(350, v.calMs));
       if(Number.isInteger(v.streak)) streak = Math.max(0, v.streak);
       if(Number.isInteger(v.userBpm)) userBpm = v.userBpm ? Math.max(BPM_MIN, Math.min(BPM_MAX, v.userBpm)) : 0;
@@ -1387,7 +1398,7 @@ function goPrev(){
 }
 function shift(d){
   if(run) return;
-  const n = Math.min(11, Math.max(1, level+d));
+  const n = Math.min(MAX_LEVEL, Math.max(1, level+d));
   if(n === level) return;
   level = n;
   streak = 0; promoSnoozedAt = 0;      // a new level earns its own streak
