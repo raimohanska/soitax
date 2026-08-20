@@ -378,6 +378,15 @@ function makeBars(lv){
     out = Array.from({length:barsAt(lv)}, () => makeBar(lv));
     const sounding = out.flat().filter(n => !n.rest).length;
     if(sounding < 2) continue;
+    // no beat may hold more than one beat's worth of note/rest length
+    if(!out.every(bar => {
+      for(let b=0; b<BEATS; b++){
+        let total = 0;
+        for(const n of bar) if(Math.floor(n.onset/U) === b) total += n.dur;
+        if(total > U) return false;
+      }
+      return true;
+    })) continue;
     if(lv === 7  && !out.every(bar => bar.some(n => n.trip))) continue;
     if(lv === 8  && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.tie))) continue;
     if(lv === 9  && !out.every(bar => bar.some(n => n.dur <= 3))) continue;
