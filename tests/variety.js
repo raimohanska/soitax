@@ -34,6 +34,29 @@ setTimeout(()=>{
     if(!pass) fails++;
     console.log(`level ${String(lv).padStart(2)}  distinct patterns in ${N}: ${String(distinct).padStart(3)}  ${pass?'ok':'FAIL — too repetitive'}`);
   }
+  console.log('\n--- triplet rest progression ---');
+  for(let i=0;i<5;i++) click(d.getElementById('lvDown')); // level 6
+  let earlyEdgeRest=false;
+  for(let i=0;i<100;i++){
+    click(d.getElementById('nextBtn'));
+    earlyEdgeRest ||= /\(3(?:z2B2B2|B2B2z2)/.test(fingerprint());
+  }
+  if(earlyEdgeRest){ fails++; console.log('FAIL — edge-rest triplet appears before level 7'); }
+  else console.log('ok — level 6 keeps all three triplet notes sounding');
+
+  click(d.getElementById('lvUp')); // level 7
+  let startsWithRest=false, endsWithRest=false;
+  for(let i=0;i<200 && !(startsWithRest && endsWithRest);i++){
+    click(d.getElementById('nextBtn'));
+    const abc=fingerprint();
+    startsWithRest ||= /\(3z2B2B2/.test(abc);
+    endsWithRest   ||= /\(3B2B2z2/.test(abc);
+  }
+  if(!startsWithRest || !endsWithRest){
+    fails++;
+    console.log(`FAIL — level 7 edge-rest triplets missing (start: ${startsWithRest}, end: ${endsWithRest})`);
+  } else console.log('ok — level 7 includes triplets starting and ending with a rest');
+
   // no pattern may be empty — a bar of pure rests gives the reader nothing to do
   console.log('\n--- minimum content ---');
   let empties=0, thin=0;

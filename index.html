@@ -295,9 +295,11 @@ const CELLS = [
   {lv:5, w:2, notes:[[6,0],[12,0],[6,0]]},                       // syncopation, untied
   // triplets — one new concept at a slower tempo; no ties yet
   {lv:6, w:5, notes:[[4,0],[4,0],[4,0]], trip:true},             // triplet
-  // triplets & syncopation — tie or off-beat rest inside a triplet
+  // triplets & syncopation — ties and rests in every triplet position
   {lv:7, w:3, notes:[[4,0],[4,0],[4,0,1]], trip:true},           // triplet, last tied
   {lv:7, w:2, notes:[[4,0],[4,1],[4,0]], trip:true},             // triplet, rest on 2nd
+  {lv:7, w:2, notes:[[4,1],[4,0],[4,0]], trip:true},             // triplet starts with rest
+  {lv:7, w:2, notes:[[4,0],[4,0],[4,1]], trip:true},             // triplet ends with rest
   // sixteenths + rests in groups of four (no ties yet)
   {lv:8, w:3, notes:[[3,0],[3,0],[3,0],[3,0]]},                  // four 16ths
   {lv:8, w:2, notes:[[6,0],[3,0],[3,0]]},                        // eighth + 2 sixteenths
