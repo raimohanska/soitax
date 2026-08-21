@@ -1,5 +1,5 @@
 - [x] Add repetition checker: avoid generating the same assignments again (we already remember previous ones)
-- [ ] Level 3 to add also eitght rests, as well as half rests. Current level 4 can then be removed.
+- [x] Level 3 includes eighth and half rests, including off-beat eighths; the separate rest levels are removed.
 - [ ] Introduce dotted notes and rests
 - [ ] Triplets that start/end with a rest
 - [ ] Add more time signatures. Maybe use a selector for this instead of the levels.

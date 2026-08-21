@@ -44,7 +44,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   d1.getElementById('silent').dispatchEvent(new w1.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(/silent/i.test(d1.getElementById('silent').textContent),'toggled to silent');
-  const raw=w1.localStorage.getItem('soitax-v1');
+  const raw=w1.localStorage.getItem('soitax-v3');
   console.log('  localStorage holds:', raw);
   ok(raw!==null,'something was actually persisted');
   const saved=JSON.parse(raw||'{}');
@@ -64,7 +64,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await sleep(150);
   console.log('  level:',d3.getElementById('lvTxt').textContent.trim(),
               ' bpm:',d3.getElementById('bpmVal').textContent);
-  ok(/Level 4/.test(d3.getElementById('lvTxt').textContent),'level restored');
+  ok(/Level 3/.test(d3.getElementById('lvTxt').textContent),'removed level 4 migrates to level 3');
   ok(Number(d3.getElementById('bpmVal').textContent)===96,'chosen tempo restored');
   ok(/sound on/i.test(d3.getElementById('silent').textContent),'silent:false restored as sound on');
 
@@ -79,7 +79,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   d4.getElementById('silent').dispatchEvent(new w4.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(w4.__usedHostStorage===true,'host storage used in preference to localStorage');
-  ok(w4.localStorage.getItem('soitax-v1')===null,'localStorage left untouched in the webview');
+  ok(w4.localStorage.getItem('soitax-v3')===null,'localStorage left untouched in the webview');
 
   console.log('\n' + (fails===0?'=== ALL PASSED ===':`=== ${fails} FAILURES ===`));
   process.exit(fails?1:0);

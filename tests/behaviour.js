@@ -77,6 +77,19 @@ setTimeout(() => {
     tries++;
   }
   ok(beamFound, `beamed patterns generated (after ${tries} tries)`);
+  const rests = new Set();
+  for(let i=0;i<120 && (!rests.has(6) || !rests.has(24));i++){
+    ev(doc.getElementById('nextBtn'),'click');
+    for(const dur of win.__rests || []) rests.add(dur);
+  }
+  ok(rests.has(6), 'level 3 generates eighth rests');
+  ok(rests.has(24), 'level 3 generates half rests');
+  let tied = false;
+  for(let i=0;i<120;i++){
+    ev(doc.getElementById('nextBtn'),'click');
+    if((win.__abc || '').includes('-')) tied = true;
+  }
+  ok(!tied, 'level 3 never generates ties');
   const label = doc.getElementById('hear').textContent.trim();
   ok(label === 'Show me', `button renamed to "Show me" (got "${label}")`);
 

@@ -279,50 +279,50 @@ const U = 12, BEATS = 4, BAR = U*BEATS;
 // arc — which is how you write a note that crosses a beat while keeping the
 // beat visible.
 const CELLS = [
-  // pedagogic order: pulse → long notes → beamed subdivisions → rests → ties/syncopation
+  // pedagogic order: pulse → long notes → beamed subdivisions & rests → ties/syncopation
   //   → triplets → triplets & syncopation → sixteenths & rests → sixteenth ties
   {lv:1, w:5, notes:[[12,0]]},                                   // quarter
   {lv:1, w:2, notes:[[12,1]]},                                   // quarter rest
   {lv:2, w:3, notes:[[24,0]]},                                   // half
   {lv:3, w:9, notes:[[6,0],[6,0]]},                              // BEAMED eighth pair
-  {lv:4, w:1, notes:[[24,1]]},                                   // half rest
-  {lv:5, w:2, notes:[[6,0],[6,1]]},                              // eighth + rest
-  {lv:5, w:2, notes:[[6,1],[6,0]]},                              // off-beat eighth
+  {lv:3, w:1, notes:[[24,1]]},                                   // half rest
+  {lv:3, w:2, notes:[[6,0],[6,1]]},                              // eighth + rest
+  {lv:3, w:2, notes:[[6,1],[6,0]]},                              // off-beat eighth
   // ties across the beat — the written form of syncopation
-  {lv:6, w:5, notes:[[6,0],[6,0,1],[6,0],[6,0]]},                // 8 · 8~8 · 8
-  {lv:6, w:3, notes:[[6,0],[6,0,1],[12,0]]},                     // 8 · 8~quarter
-  {lv:6, w:2, notes:[[18,0],[6,0]]},                             // dotted quarter + eighth
-  {lv:6, w:2, notes:[[6,0],[12,0],[6,0]]},                       // syncopation, untied
+  {lv:4, w:5, notes:[[6,0],[6,0,1],[6,0],[6,0]]},                // 8 · 8~8 · 8
+  {lv:4, w:3, notes:[[6,0],[6,0,1],[12,0]]},                     // 8 · 8~quarter
+  {lv:4, w:2, notes:[[18,0],[6,0]]},                             // dotted quarter + eighth
+  {lv:4, w:2, notes:[[6,0],[12,0],[6,0]]},                       // syncopation, untied
   // triplets — one new concept at a slower tempo; no ties yet
-  {lv:7, w:5, notes:[[4,0],[4,0],[4,0]], trip:true},             // triplet
+  {lv:5, w:5, notes:[[4,0],[4,0],[4,0]], trip:true},             // triplet
   // triplets & syncopation — tie or off-beat rest inside a triplet
-  {lv:8, w:3, notes:[[4,0],[4,0],[4,0,1]], trip:true},           // triplet, last tied
-  {lv:8, w:2, notes:[[4,0],[4,1],[4,0]], trip:true},             // triplet, rest on 2nd
+  {lv:6, w:3, notes:[[4,0],[4,0],[4,0,1]], trip:true},           // triplet, last tied
+  {lv:6, w:2, notes:[[4,0],[4,1],[4,0]], trip:true},             // triplet, rest on 2nd
   // sixteenths + rests in groups of four (no ties yet)
-  {lv:9, w:3, notes:[[3,0],[3,0],[3,0],[3,0]]},                  // four 16ths
-  {lv:9, w:2, notes:[[6,0],[3,0],[3,0]]},                        // eighth + 2 sixteenths
-  {lv:9, w:2, notes:[[3,0],[3,0],[6,0]]},                        // 2 sixteenths + eighth
-  {lv:9, w:1, notes:[[3,1],[3,0],[3,0],[3,0]]},                  // rest + 3 sixteenths
-  {lv:9, w:1, notes:[[3,0],[3,1],[3,0],[3,0]]},                  // 16th, rest, 16th, 16th
-  {lv:9, w:1, notes:[[3,0],[3,0],[3,1],[3,0]]},                  // 16th, 16th, rest, 16th
-  {lv:9, w:1, notes:[[3,0],[3,0],[3,0],[3,1]]},                  // 3 sixteenths + rest
-  {lv:9, w:1, notes:[[3,1],[3,0],[3,0],[3,1]]},                  // rest + 2 sixteenths + rest
-  {lv:9, w:1, notes:[[3,0],[3,1],[3,1],[3,0]]},                  // 16th, 2 rests, 16th
+  {lv:7, w:3, notes:[[3,0],[3,0],[3,0],[3,0]]},                  // four 16ths
+  {lv:7, w:2, notes:[[6,0],[3,0],[3,0]]},                        // eighth + 2 sixteenths
+  {lv:7, w:2, notes:[[3,0],[3,0],[6,0]]},                        // 2 sixteenths + eighth
+  {lv:7, w:1, notes:[[3,1],[3,0],[3,0],[3,0]]},                  // rest + 3 sixteenths
+  {lv:7, w:1, notes:[[3,0],[3,1],[3,0],[3,0]]},                  // 16th, rest, 16th, 16th
+  {lv:7, w:1, notes:[[3,0],[3,0],[3,1],[3,0]]},                  // 16th, 16th, rest, 16th
+  {lv:7, w:1, notes:[[3,0],[3,0],[3,0],[3,1]]},                  // 3 sixteenths + rest
+  {lv:7, w:1, notes:[[3,1],[3,0],[3,0],[3,1]]},                  // rest + 2 sixteenths + rest
+  {lv:7, w:1, notes:[[3,0],[3,1],[3,1],[3,0]]},                  // 16th, 2 rests, 16th
   // sixteenth ties & syncopation — tied note ends at beat boundary
-  {lv:10, w:3, notes:[[3,0],[3,0],[3,0],[3,0,1]]},               // four 16ths, last tied
-  {lv:10, w:3, notes:[[3,0],[3,0],[6,0,1]]},                     // 2 sixteenths + eighth tied
-  {lv:10, w:3, notes:[[6,0],[3,0],[3,0,1]]},                     // eighth + 2 sixteenths, last tied
+  {lv:8, w:3, notes:[[3,0],[3,0],[3,0],[3,0,1]]},                // four 16ths, last tied
+  {lv:8, w:3, notes:[[3,0],[3,0],[6,0,1]]},                      // 2 sixteenths + eighth tied
+  {lv:8, w:3, notes:[[6,0],[3,0],[3,0,1]]},                      // eighth + 2 sixteenths, last tied
 ];
 const cellLen = c => c.notes.reduce((s,n) => s+n[0], 0);
 
 const NAMES = ['quarter notes & rests','adds half notes',
-               'adds beamed eighth pairs','adds half rests','adds off-beat eighths',
-               'ties & syncopation','adds triplets','triplets & syncopation',
+               'eighth notes & rests','ties & syncopation',
+               'adds triplets','triplets & syncopation',
                'adds sixteenths & rests','sixteenth ties & syncopation',
                'sixteenths & triplets','grand mix'];
 const MAX_LEVEL = NAMES.length;
-const barsAt = lv => lv<=1 ? 1 : lv<=7 ? 2 : 3;
-const bpmAt  = lv => [0, 58, 62, 66, 70, 74, 78, 58, 62, 66, 74, 90, 96][lv];
+const barsAt = lv => lv<=1 ? 1 : lv<=5 ? 2 : 3;
+const bpmAt  = lv => [0, 58, 62, 66, 78, 58, 62, 66, 74, 90, 96][lv];
 
 function pick(list){
   let t = 0; for(const c of list) t += c.w;
@@ -336,26 +336,33 @@ function pick(list){
 // Notes and rests are split at beat 3 (the bar midpoint) so the eye can
 // always locate it — a half note at beat 2 becomes two tied quarters, etc.
 function makeBar(lv){
-  // Level 9 strips ties & triplets to focus on sixteenths alone;
-  // level 10 strips triplets (ties return); level 11 has everything.
+  // Level 7 strips ties & triplets to focus on sixteenths alone;
+  // level 8 strips triplets (ties return); level 9 has everything.
   const pool = CELLS.filter(c => {
     if(c.lv > lv) return false;
-    if(lv === 9  && (c.lv === 6 || c.lv === 7 || c.lv === 8)) return false;
-    if(lv === 10 && c.lv === 7) return false;
+    if(lv === 7 && (c.lv === 4 || c.lv === 5 || c.lv === 6)) return false;
+    if(lv === 8 && c.lv === 5) return false;
     return true;
   });
   const out = [];
   let at = 0;
   while(at < BAR){
     const room = BAR - at;
-    const cell = pick(pool.filter(c => cellLen(c) <= room));
+    const cell = pick(pool.filter(c => {
+      if(cellLen(c) > room) return false;
+      // Before ties are introduced, a half note/rest may only start on beats 1
+      // or 3. Starting on beat 2 would cross the visible bar midpoint and be
+      // rewritten below as tied quarters.
+      if(lv < 4 && cellLen(c) === U*2 && at % (U*2) !== 0) return false;
+      return true;
+    }));
     for(const [dur, rest, tie] of cell.notes){
       out.push({onset:at, dur, rest:!!rest, trip:!!cell.trip, tie:!!tie});
       at += dur;
     }
   }
-  // Levels 7 & 9: no ties — triplets only (7) or sixteenths only (9)
-  if(lv === 7 || lv === 9) for(const n of out) n.tie = false;
+  // Levels 5 & 7: no ties — triplets only (5) or sixteenths only (7)
+  if(lv === 5 || lv === 7) for(const n of out) n.tie = false;
   // A tie needs something to tie to, and we never tie across a bar line here.
   if(out.length) out[out.length-1].tie = false;
   for(let i=0;i<out.length;i++){
@@ -395,17 +402,17 @@ function makeBars(lv){
       }
       return true;
     })) continue;
-    if(lv === 7  && !out.every(bar => bar.some(n => n.trip))) continue;
-    if(lv === 8  && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.tie))) continue;
-    if(lv === 9  && !out.every(bar => bar.some(n => n.dur <= 3))) continue;
-    if(lv === 10 && !out.every(bar => bar.some(n => n.tie && n.dur <= 3))) continue;
-    if(lv === 11 && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.dur <= 3))) continue;
+    if(lv === 5 && !out.every(bar => bar.some(n => n.trip))) continue;
+    if(lv === 6 && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.tie))) continue;
+    if(lv === 7 && !out.every(bar => bar.some(n => n.dur <= 3))) continue;
+    if(lv === 8 && !out.every(bar => bar.some(n => n.tie && n.dur <= 3))) continue;
+    if(lv === 9 && !out.every(bar => bar.some(n => n.trip) && bar.some(n => n.dur <= 3))) continue;
     if(lv === MAX_LEVEL && !out.every(bar => bar.length >= 12)) continue;
     break;
   }
   // Ties over the bar line: the bar line is by definition a beat boundary, so
   // this is the same device as a within-bar tie, just spanning the measure.
-  if(lv >= 6 && lv !== 7 && lv !== 9){
+  if(lv >= 4 && lv !== 5 && lv !== 7){
     for(let i=0;i<out.length-1;i++){
       const last = out[i][out[i].length-1];
       const first = out[i+1][0];
@@ -414,7 +421,7 @@ function makeBars(lv){
       if(Math.random() < (lv >= MAX_LEVEL ? 0.7 : 0.3)) last.tie = true;
     }
   }
-  // Level 12: within-bar ties at beat boundaries
+  // Final level: within-bar ties at beat boundaries
   if(lv >= MAX_LEVEL){
     for(let i=0;i<out.length-1;i++){
       if(out[i].tie || out[i].rest || out[i+1].rest) continue;
@@ -1487,7 +1494,7 @@ function maybeSuggestLevel(){
 /* ══════════════════════════════════════════════════════════
    7. LEVEL / PERSISTENCE / BOOT
    ══════════════════════════════════════════════════════════ */
-const KEY = 'soitax-v1';
+const KEY = 'soitax-v3', LEGACY_KEYS = ['soitax-v2', 'soitax-v1'];
 
 // `window.storage` only exists inside the Claude webview. In Safari — which is
 // where the app actually gets used, installed to a home screen — it is
@@ -1517,10 +1524,20 @@ document.getElementById('welcomeDismiss').addEventListener('click', () => {
 
 async function load(){
   try{
-    const r = await store.get(KEY, false);
+    let r = await store.get(KEY, false);
+    let legacyVersion = 3;
+    for(let i=0; (!r || !r.value) && i<LEGACY_KEYS.length; i++){
+      r = await store.get(LEGACY_KEYS[i], false);
+      if(r && r.value) legacyVersion = 2 - i;
+    }
     if(r && r.value){
       const v = JSON.parse(r.value);
-      if(Number.isInteger(v.level)) level = Math.min(MAX_LEVEL, Math.max(1, v.level));
+      if(Number.isInteger(v.level)){
+        let savedLevel = v.level;
+        if(legacyVersion === 2 && savedLevel >= 4) savedLevel--;
+        if(legacyVersion === 1 && savedLevel >= 4) savedLevel -= savedLevel === 4 ? 1 : 2;
+        level = Math.min(MAX_LEVEL, Math.max(1, savedLevel));
+      }
       if(typeof v.calMs === 'number') calMs = Math.max(-350, Math.min(350, v.calMs));
       if(Number.isInteger(v.streak)) streak = Math.max(0, v.streak);
       if(Number.isInteger(v.userBpm)) userBpm = v.userBpm ? Math.max(BPM_MIN, Math.min(BPM_MAX, v.userBpm)) : 0;
@@ -1551,6 +1568,7 @@ function showPattern(b){
   // tests used to reverse-map notehead x out of the old hand-rolled SVG; abcjs
   // owns layout now, so they read the timing here instead of the geometry.
   window.__onsets = soundingNotes().map(n => n.abs);
+  window.__rests = bars.flat().filter(n => n.rest).map(n => n.dur);
   // A stable fingerprint of the current pattern, model-derived (not rendered),
   // for the variety test. Includes onset/dur/rest/tie so distinct rhythms differ.
   window.__abc = barsToAbc(bars);

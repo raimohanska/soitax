@@ -14,7 +14,7 @@ loose — a correct read with sloppy timing passes; a wrong read doesn't. What i
 wrong, because note length is half of what the notation is telling you.
 
 - **Ten levels**, staged the way rhythm reading is usually taught: quarter notes
-  → half notes → beamed eighth pairs → rests → off-beat eighths → ties and
+  → half notes → eighth notes and rests → ties and
   syncopation → sixteenths → triplets.
 - **Real notation**, engraved by [abcjs](https://abcjs.net): proper beam
   grouping by beat (pairs of eighths, fours of sixteenths), conventional rest
