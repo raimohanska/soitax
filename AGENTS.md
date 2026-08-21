@@ -138,6 +138,19 @@ Also: when a test fails, check whether the *harness* is wrong. Several
 two taps 1ms apart (correctly debounced), or sampling flash timing more coarsely
 than the thing it measured.
 
+Several suites are **flaky by construction**: they generate unseeded random bars
+and grade them, so a single red run proves nothing. Run a suite three times
+before believing it, and compare against the same three runs of the old code.
+
+**Never mutate the working tree to get that baseline.** No `git stash`, no
+`git checkout -- `, no branch switching, no reverting files — other agents may be
+editing the same tree at the same time and their work would vanish. Get the old
+version out of git without touching the tree instead:
+
+```bash
+git show HEAD:index.html > /tmp/base/index.html   # then run the suite against the copy
+```
+
 ## Deploying
 
 There is only ever one branch: `main`. Never create, check out, or push to any
