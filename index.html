@@ -597,15 +597,6 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
   s += `<line x1="${VW-PAD_R+10}" y1="${BASE-14}" x2="${VW-PAD_R+10}" y2="${BASE+14}"
           stroke="${C_STAFF}" stroke-width="1"/>`;
 
-  // 4/4 time signature on the first bar
-  if(rowIdx === 0){
-    const tsX = PAD_L - 4;
-    s += `<text x="${tsX}" y="${BASE - 4}" fill="${C_INK}" font-size="14"
-            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">4</text>`;
-    s += `<text x="${tsX}" y="${BASE + 12}" fill="${C_INK}" font-size="14"
-            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">4</text>`;
-  }
-
   const groups = beamGroups(bar);
   const inBeam = new Map();                      // note index → group
   groups.forEach(g => g.forEach(i => inBeam.set(i, g)));
