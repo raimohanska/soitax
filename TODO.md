@@ -1,0 +1,5 @@
+- [ ] Use half rests + dots instead of repeated quarter rests
+- [ ] Add repetition checker: avoid generating the same assignments again (we already remember previous ones)
+- [ ] Level 3 to add also eitght rests, as well as half rests. Current level 4 can then be removed.
+- [ ] Introduce dotted notes and rests
+- [ ] Add more time signatures. Maybe use a selector for this instead of the levels.
