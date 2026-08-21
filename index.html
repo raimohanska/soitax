@@ -508,7 +508,7 @@ const C_OK = '#1f8a4c', C_WARN = '#b07d10';   // sustain right / sustain off
 const C_PANEL = '#f7f7f5', C_EDGE = '#e3e3de';
 
 const VW = 320;            // viewBox width; CSS scales it
-const PAD_L = 16, PAD_R = 20;
+const PAD_L = 32, PAD_R = 20;
 const SPAN = VW - PAD_L - PAD_R;
 const BASE = 62;           // staff line y within a row
 const ROW_H = 112;
@@ -591,11 +591,18 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
   const y0 = rowIdx*ROW_H;
   let s = `<g transform="translate(0 ${y0})">`;
 
-  // staff line + closing tick
-  s += `<line x1="${PAD_L-8}" y1="${BASE}" x2="${VW-PAD_R+10}" y2="${BASE}"
-          stroke="${C_STAFF}" stroke-width="1"/>`;
+  // closing tick (barline)
   s += `<line x1="${VW-PAD_R+10}" y1="${BASE-14}" x2="${VW-PAD_R+10}" y2="${BASE+14}"
           stroke="${C_STAFF}" stroke-width="1"/>`;
+
+  // 4/4 time signature on the first bar
+  if(rowIdx === 0){
+    const tsX = PAD_L - 16;
+    s += `<text x="${tsX}" y="${BASE - 7}" fill="${C_INK}" font-size="14"
+            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">4</text>`;
+    s += `<text x="${tsX}" y="${BASE + 7}" fill="${C_INK}" font-size="14"
+            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">4</text>`;
+  }
 
   const groups = beamGroups(bar);
   const inBeam = new Map();                      // note index → group
