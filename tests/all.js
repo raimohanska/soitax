@@ -11,6 +11,7 @@ const SUITES = [
   ['require-sustain', 'only over-holding is penalised'],
   ['calibrate',       'latency self-calibration'],
   ['variety',         'pattern variety'],
+  ['repeat',          'no repeated patterns'],
   ['swipe',           'swipe vs tap'],
   ['behaviour',       'attempt vs show-me'],
   ['persist',         'settings survive a relaunch'],

@@ -1557,9 +1557,28 @@ function showPattern(b){
   paintPad('idle','Begin','tap to start · swipe for another');
   syncControls();
 }
+// Identity of an exercise: two patterns that read identically ARE the same
+// assignment. barsToAbc is model-derived and distinguishes onset/dur/rest/
+// tie/triplet, so it is the single source of truth for "same pattern" — the
+// same fingerprint the variety test reads off window.__abc.
+function patternKey(b){ return barsToAbc(b); }
+
 function fresh(){                       // brand-new pattern, drops any forward history
   hist = hist.slice(0, histIdx+1);
-  hist.push(makeBars(level));
+  // Repetition checker: regenerate while the draw matches anything already in
+  // history. Guarded — level 1 has only ~16 distinct one-bar patterns, so once
+  // history is deeper than the pattern space a repeat is unavoidable. Even
+  // then, prefer ANY remembered pattern over the one currently on screen.
+  const seen = new Set(hist.map(patternKey));
+  const curKey = hist.length ? patternKey(hist[histIdx]) : null;
+  let b = null, stale = null;
+  for(let guard=0; guard<20; guard++){
+    const t = makeBars(level);
+    const k = patternKey(t);
+    if(!seen.has(k)){ b = t; break; }
+    if(k !== curKey && !stale) stale = t;
+  }
+  hist.push(b || stale || makeBars(level));
   if(hist.length > 40){ hist.shift(); }
   histIdx = hist.length-1;
   showPattern(hist[histIdx]);
