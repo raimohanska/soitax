@@ -263,6 +263,7 @@
 
 </div>
 
+<script src="abcjs-basic-min.js"></script>
 <script>
 "use strict";
 (function(){
@@ -545,6 +546,77 @@ function sixteenthRuns(bar, group){
 }
 
 /* ══════════════════════════════════════════════════════════
+   2b. ABC TRANSLATION  (spike: feed abcjs instead of hand-rolled SVG)
+   ══════════════════════════════════════════════════════════ */
+// Our cell model is unit-based (U=12 units/beat; sixteenth=3). With ABC's
+// L:1/16 default, a plain note's written length is dur/3 sixteenths. Triplet
+// cells carry dur in triplet-eighth/quarter units (4,8); inside an ABC "(3"
+// tuplet those are WRITTEN as ordinary eighths/quarters, i.e. dur/2 sixteenths.
+// Pitch is irrelevant to a rhythm trainer, so every note is the same 'B'.
+const ABC_PITCH = 'B';
+function abcLen(n){
+  const sixteenths = n.trip ? n.dur/2 : n.dur/3;   // written length, in 1/16ths
+  return sixteenths === 1 ? '' : String(sixteenths);
+}
+// Emit one bar as ABC tokens. Beaming in ABC is controlled by WHITESPACE:
+// glyphs written flush (no space) share a beam; a space breaks it. abcjs's own
+// auto-beaming groups eighths 4+4 in 4/4, which crosses the bar midpoint and
+// reads wrong for this trainer — so we don't leave it to abcjs. We reuse
+// beamGroups() (the same beat-bounded grouping the hand-rolled staff used):
+// notes inside one group are flush, everything else is space-separated. This
+// also fixes triplet beams, since a triplet run is one beamGroup.
+function barToAbc(bar){
+  const groups = beamGroups(bar);            // arrays of note indices that beam together
+  const groupOf = new Map();
+  groups.forEach(g => g.forEach(idx => groupOf.set(idx, g)));
+
+  let out = '';
+  let i = 0;
+  while(i < bar.length){
+    const n = bar[i];
+    if(n.trip){
+      // one ABC tuplet spans the whole same-beat triplet run; its members beam
+      // together, so they're written flush inside the "(3 ...".
+      const beat = Math.floor(n.onset/U);
+      const run = [];
+      while(i < bar.length && bar[i].trip && Math.floor(bar[i].onset/U) === beat){
+        run.push(i); i++;
+      }
+      out += ' (' + run.length;
+      for(const idx of run) out += tok(bar[idx]);
+      continue;
+    }
+    // A beamed group is written flush together; standalone notes/rests get a
+    // space on each side so abcjs can't beam across the beat.
+    const g = groupOf.get(i);
+    if(g && g[0] === i){
+      out += ' ';
+      for(const idx of g) out += tok(bar[idx]);   // flush → one beam
+      i = g[g.length-1] + 1;
+    } else {
+      out += ' ' + tok(n) + ' ';
+      i++;
+    }
+  }
+  return out.replace(/\s+/g, ' ').trim();
+
+  function tok(m){
+    const glyph = m.rest ? 'z' : ABC_PITCH;
+    return glyph + abcLen(m) + (m.tie && !m.rest ? '-' : '');
+  }
+}
+// Full tune: one bar per source bar, joined by bar lines. abcjs auto-beams by
+// meter, which matches our "beam within the beat" rule.
+function barsToAbc(bars){
+  const body = bars.map(barToAbc).join(' | ');
+  // stem=up keeps every stem on one side, as our hand-rolled staff did.
+  // %%stretchlast 1 forces even a short final row out to full staff width, so a
+  // lone trailing bar doesn't sit half-empty. (It's a formatting DIRECTIVE — the
+  // `stretchlast` render OPTION is ignored by this build; it must live in the ABC.)
+  return `X:1\n%%stretchlast 1\nM:4/4\nL:1/16\nK:C stem=up\n${body} |]\n`;
+}
+
+/* ══════════════════════════════════════════════════════════
    3. SVG NOTATION
    ══════════════════════════════════════════════════════════ */
 // SVG presentation attributes (fill=, stroke=) do NOT resolve var() —
@@ -697,136 +769,37 @@ function restFor(x, dur){
   return restSixteenth(x);
 }
 
-/* render one bar into an SVG group ----------------------- */
-function renderBar(bar, rowIdx, idBase, markMap, tieIn){
-  const y0 = rowIdx*ROW_H;
-  let s = `<g transform="translate(0 ${y0})">`;
+/* SPIKE: the hand-rolled per-bar SVG renderer (renderBar) and its glyph
+   builders below (notehead/stemUp/flags/rests/…) are superseded by abcjs and no
+   longer called. They're kept in place for now so the diff stays legible and the
+   old approach is easy to diff against; they will be removed once the spike is
+   judged. renderScore() above is the live entry point. */
 
-  // closing tick (barline)
-  s += `<line x1="${VW-PAD_R-6}" y1="${BASE-STEM-8}" x2="${VW-PAD_R-6}" y2="${BASE+12}"
-          stroke="${C_STAFF}" stroke-width="1"/>`;
 
-  // 4/4 time signature on the first bar, centred on the same axis as the rests
-  if(rowIdx === 0){
-    const tsX = PAD_L - 32, TS = 14, CAP = TS * 0.71;   // digits have no descender
-    const GAP = 3;                                      // leading between the digits
-    // The pair spans 2*CAP+GAP and is centred on NOTE_MID; each baseline sits at
-    // the foot of its own digit. Without GAP the two glyphs are exactly flush,
-    // which reads as one blob. dominant-baseline is avoided on purpose — WebKit
-    // has rendered it inconsistently and jsdom cannot measure it at all.
-    const ts = (n, base) => `<text x="${tsX}" y="${base}" fill="${C_INK}" font-size="${TS}"
-            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">${n}</text>`;
-    s += ts(4, NOTE_MID - GAP/2) + ts(4, NOTE_MID + CAP + GAP/2);
-  }
-
-  const groups = beamGroups(bar);
-  const inBeam = new Map();                      // note index → group
-  groups.forEach(g => g.forEach(i => inBeam.set(i, g)));
-  const beamTop = BASE - STEM;
-
-  // beams first
-  for(const g of groups){
-    const x1 = xAt(bar[g[0]].onset) + SW;
-    const x2 = xAt(bar[g[g.length-1]].onset) + SW;
-    s += `<rect x="${x1}" y="${beamTop}" width="${x2-x1}" height="${BEAM_T}" fill="${C_INK}"/>`;
-    for(const run of sixteenthRuns(bar, g)){
-      const a = xAt(bar[run[0]].onset) + SW;
-      const b = xAt(bar[run[run.length-1]].onset) + SW;
-      s += `<rect x="${a}" y="${beamTop+BEAM_GAP}" width="${Math.max(b-a, 7)}"
-              height="${BEAM_T}" fill="${C_INK}"/>`;
-    }
-  }
-
-  // ties: an arc under the noteheads (stems are up, so the curve sits below)
-  const tieY = BASE + 7.5, tieDip = BASE + 15;
-  const arc = (x1, x2) =>
-    `<path d="M${x1} ${tieY} Q ${(x1+x2)/2} ${tieDip} ${x2} ${tieY}"
-       fill="none" stroke="${C_INK}" stroke-width="1.7" stroke-linecap="round"/>`;
-
-  // Triplet "3" over runs that have no beam to hang it from: a triplet with a
-  // rest in the middle never forms a beam group (rests break beams), so the
-  // marker above a beam never appears. Scan for same-beat runs of trip events
-  // and drop a "3" centred over each.
-  {
-    let run = null;
-    const flushTrip = () => {
-      if(run && run.length){
-        const mid = (xAt(run[0].onset) + xAt(run[run.length-1].onset)) / 2;
-        s += `<text x="${mid}" y="${BASE - STEM - 7}" fill="${C_MUTE}" font-size="10"
-                font-family="Inter,sans-serif" font-style="italic" text-anchor="middle">3</text>`;
-      }
-      run = null;
-    };
-    bar.forEach(n => {
-      if(!n.trip){ flushTrip(); return; }
-      if(run && Math.floor(run[0].onset/U) === Math.floor(n.onset/U)) run.push(n);
-      else { flushTrip(); run = [n]; }
-    });
-    flushTrip();
-  }
-
-  // ties: an arc under the noteheads (stems are up, so the curve sits below)
-
-  bar.forEach((n, i) => {
-    if(!n.tie) return;
-    const x1 = xAt(n.onset) + 2.5;
-    if(i+1 < bar.length){
-      s += arc(x1, xAt(bar[i+1].onset) - 2.5);           // within this bar
-    } else {
-      // tie continues over the bar line: draw the half that belongs to this bar,
-      // running out past the barline the way a broken tie is engraved
-      s += arc(x1, VW - PAD_R - 2);
-    }
-  });
-  // ...and the incoming half, if the previous bar tied into this one
-  if(tieIn && bar.length && !bar[0].rest){
-    s += arc(PAD_L - 14, xAt(bar[0].onset) - 2.5);
-  }
-
-  // notes & rests
-  bar.forEach((n, i) => {
-    const x = xAt(n.onset);
-    if(n.rest){ s += restFor(x, n.dur); return; }
-
-    const id = idBase + '-' + i;
-    s += notehead(x, n.dur !== 24, id);
-    if(inBeam.has(i)) s += stemUp(x, beamTop + BEAM_T);
-    else {
-      s += stemUp(x, BASE - STEM);
-      if(n.dur === 6 || n.dur === 4) s += flags(x, 1);
-      else if(n.dur === 3) s += flags(x, 2);
-    }
-    if(n.dur === 18) s += dotAfter(x);
-
-    // Only the note that starts the sound carries feedback; a tied
-    // continuation has no onset of its own to judge.
-    const mk = markMap ? markMap.get(id) : null;
-    if(mk) s += feedback(x, mk);
-  });
-
-  // Extra taps (mistakes) rendered as red bars in the feedback lane.
-  if(markMap){
-    for(const [id, mk] of markMap){
-      if(mk.status !== 'extra' || mk.bar !== rowIdx) continue;
-      s += feedbackExtra(mk.onset, mk);
-    }
-  }
-
-  return s + '</g>';
-}
 
 // The feedback lane sits under the staff. For each note it draws the NOTATED
 // span as a hollow outline, and what you actually played as a solid bar —
 // shifted left/right by your onset error and as long as you actually held it.
 // Reading the two against each other shows timing and sustain at a glance.
-const LANE = BASE + 27, LANE_H = 5;
-const wUnits = u => (u/BAR)*SPAN;
+// SPIKE: positions now come from the abcjs-measured geometry (g), not xAt.
+const LANE_H = 5;
 
-function feedback(x, mk){
+function feedback(g, mk){
+  const x = g.cx;             // notehead centre in abcjs pixel space
+  const LANE = g.laneY;       // just below this note's glyph
+  const u0 = onsetUnitsOf(g.id);          // this note's musical onset (abs units)
+  // The NOTATED span ends where the note's written value ends — map that musical
+  // time to the real drawn x so the reference box lines up with the next note.
+  const targetEndX = clampRow(x, timeToX(u0 + mk.units));
+  const secPerUnit = mk.s;                 // seconds ÷ unit at the current tempo
+  // Played onset/end in musical units, so error and hold ride the SAME nonlinear
+  // spacing as the notes instead of a constant width.
+  const playStartX = clampRow(x, timeToX(u0 + mk.err / secPerUnit));
+  const playEndX   = clampRow(x, timeToX(u0 + (mk.err + mk.held) / secPerUnit));
+
   if(mk.status === 'miss'){
-    // nothing played: show the empty slot plus a cross
-    const room = (VW - PAD_R) - x;
-    let s = `<rect x="${x}" y="${LANE}" width="${Math.max(Math.min(wUnits(mk.units), room),4)}" height="${LANE_H}"
+    const wTarget = Math.max(targetEndX - x, 4);
+    let s = `<rect x="${x}" y="${LANE}" width="${wTarget}" height="${LANE_H}"
                fill="none" stroke="${C_MISS}" stroke-width="0.9" stroke-dasharray="2 2"/>`;
     s += `<path d="M${x-3} ${LANE+LANE_H+5} l6 6 M${x+3} ${LANE+LANE_H+5} l-6 6"
             stroke="${C_MISS}" stroke-width="1.2"/>`;
@@ -834,34 +807,48 @@ function feedback(x, mk){
   }
 
   const col = mk.status === 'hit' ? C_OK : C_WARN;
-  // a tie can run past this bar's end; clamp so the lane never overflows
-  const room = (VW - PAD_R) - x;
-  const target = Math.max(Math.min(wUnits(mk.units), room), 4);
-  const offset = wUnits(mk.err / mk.s);                 // onset error → x offset
-  const held = Math.max(Math.min(wUnits(mk.held / mk.s), room), 2.5);  // sustain → bar length
+  const target = Math.max(targetEndX - x, 4);
+  const held = Math.max(playEndX - playStartX, 2.5);
 
   // notated reference
   let s = `<rect x="${x}" y="${LANE}" width="${target}" height="${LANE_H}"
              fill="none" stroke="${C_STAFF}" stroke-width="0.9"/>`;
   // what was actually played
-  s += `<rect x="${x + offset}" y="${LANE + 0.9}" width="${held}" height="${LANE_H - 1.8}"
+  s += `<rect x="${playStartX}" y="${LANE + 0.9}" width="${held}" height="${LANE_H - 1.8}"
           fill="${col}" opacity="0.9"/>`;
   // a tick at the exact target onset, so the offset is readable
   s += `<line x1="${x}" y1="${LANE - 3}" x2="${x}" y2="${LANE + LANE_H + 3}"
           stroke="${C_STAFF}" stroke-width="0.9"/>`;
-  // and a short connector showing the direction/size of the error
-  if(Math.abs(offset) > 1.2){
-    s += `<line x1="${x}" y1="${LANE + LANE_H/2}" x2="${x + offset}" y2="${LANE + LANE_H/2}"
+  if(Math.abs(playStartX - x) > 1.2){
+    s += `<line x1="${x}" y1="${LANE + LANE_H/2}" x2="${playStartX}" y2="${LANE + LANE_H/2}"
             stroke="${col}" stroke-width="0.8" stroke-dasharray="1.5 1.5"/>`;
   }
   return s;
 }
 
-function feedbackExtra(onset, mk){
-  const x = xAt(onset);
-  const held = Math.max(Math.min(wUnits(mk.held / mk.s), (VW - PAD_R) - x), 2.5);
+// If a mapped x wrapped onto a later row (its x fell to the left of the note's
+// own x), clamp to this row — a lane bar shouldn't jump backwards across a break.
+function clampRow(noteX, mappedX){
+  return mappedX < noteX ? noteX : mappedX;
+}
+
+// An extra tap has no note to anchor to, so map its onset to a real drawn x.
+function feedbackExtra(mk){
+  const u0 = mk.bar*BAR + mk.onset;
+  const x = timeToX(u0);
+  const endX = clampRow(x, timeToX(u0 + mk.held / mk.s));
+  const LANE = laneYNear(x);
+  const held = Math.max(endX - x, 2.5);
   return `<rect x="${x}" y="${LANE + 0.9}" width="${held}" height="${LANE_H - 1.8}"
             fill="${C_MISS}" opacity="0.7"/>`;
+}
+
+// Lane baseline for a point with no note of its own: borrow the nearest note's.
+function laneYNear(x){
+  if(!noteGeom.length) return 20;
+  let best = noteGeom[0];
+  for(const g of noteGeom) if(Math.abs(g.cx - x) < Math.abs(best.cx - x)) best = g;
+  return best.laneY;
 }
 
 const scoreEl = document.getElementById('score');
@@ -876,39 +863,209 @@ function scoreWidth(){
   return Math.max(240, Math.round(w));
 }
 
+/* ── SPIKE: abcjs renderer ────────────────────────────────────────────────
+   abcjs owns note layout, so the feedback lane and playhead can no longer be
+   built on our xAt(). Instead, after abcjs draws, we read each note's on-screen
+   position out of the SVG (getBBox) and pair those, in staff order, with the
+   sounding events. Everything downstream (feedback(), the playhead) keys off
+   that map instead of a unit→x formula. The lane and playhead are drawn into a
+   SEPARATE overlay <svg> layered over abcjs's, so abcjs's own DOM stays intact.
+   ------------------------------------------------------------------------- */
+
+// A stable colour scheme for abcjs (it paints via CSS `color`/currentColor).
+// Kept literal to match the rest of the app's ink.
+function styleAbc(){
+  if(document.getElementById('abc-style')) return;
+  const st = document.createElement('style');
+  st.id = 'abc-style';
+  st.textContent = `
+    #score{position:relative;background:${C_PANEL};border:1px solid ${C_EDGE};
+           border-radius:3px;padding:6px 4px 30px;}
+    #score .abc-canvas{color:${C_INK};}
+    #score svg{display:block;}
+    #score .abc-overlay{position:absolute;left:0;top:0;pointer-events:none;}`;
+  document.head.appendChild(st);
+}
+
 function renderScore(bars, markMap){
   lastMarks = markMap || null;
-  const vh = bars.length*ROW_H;
+  styleAbc();
+
+  // 1. Let abcjs lay out the notation.
+  let host = scoreEl.querySelector('.abc-canvas');
+  if(!host){
+    host = document.createElement('div');
+    host.className = 'abc-canvas';
+    scoreEl.innerHTML = '';
+    scoreEl.appendChild(host);
+  }
   const w = scoreWidth();
-  const h = Math.round(w * vh / VW);
-  let inner = '';
-  // Self-contained panel: the notation must stay legible even if the host
-  // webview imposes its own background colour.
-  inner += `<rect x="0.5" y="0.5" width="${VW-1}" height="${vh-1}" fill="${C_PANEL}"
-              stroke="${C_EDGE}" stroke-width="1" rx="3"/>`;
-  bars.forEach((bar, i) => {
-    const prev = i > 0 ? bars[i-1] : null;
-    const tieIn = !!(prev && prev.length && prev[prev.length-1].tie);
-    inner += renderBar(bar, i, 'b'+i, markMap, tieIn);
+  const abc = barsToAbc(bars);
+  // Wrap bars onto multiple rows instead of cramming them into one line. abcjs's
+  // line-breaker keys off `wrap`; with `staffwidth` as the target row width it
+  // fills a row then breaks. One bar per row on a phone reads best, so bias the
+  // preferred count low and let the width raise it on a wider screen.
+  const perRow = Math.max(1, Math.min(bars.length, Math.floor((w - 16) / 220)));
+  window.ABCJS.renderAbc(host, abc, {
+    add_classes: true,
+    staffwidth: w - 16,
+    wrap: { minSpacing: 1.6, maxSpacing: 2.7, preferredMeasuresPerLine: perRow },
+    paddingleft: 4, paddingright: 4, paddingtop: 2, paddingbottom: 2,
+    scale: 1,
+    responsive: undefined,
   });
-  inner += `<line id="ph" x1="0" y1="0" x2="0" y2="0" stroke="${C_INK}"
-              stroke-width="1.2" opacity="0"/>`;
-  scoreEl.innerHTML =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"
-       style="width:${w}px;height:${h}px;display:block"
-       viewBox="0 0 ${VW} ${vh}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
-  playhead = document.getElementById('ph');
+  const abcSvg = host.querySelector('svg');
+  if(!abcSvg){ return; }
+  scoreDims.w = w;
+  scoreDims.h = abcSvg.getBBox ? Math.ceil(abcSvg.getBBox().height) :
+                parseFloat(abcSvg.getAttribute('height')) || 120;
+  // pin an explicit height so the iOS zero-height trap can't fire
+  const hh = parseFloat(abcSvg.getAttribute('height')) || scoreDims.h;
+  abcSvg.setAttribute('width', w - 8);
+  abcSvg.style.width = (w - 8) + 'px';
+  abcSvg.style.height = hh + 'px';
+
+  // 2. Read note positions and pair them with the sounding events.
+  measureNotes(bars, abcSvg);
+
+  // 3. Draw the overlay (feedback lane + playhead) on top.
+  drawOverlay(markMap, w, hh);
+}
+
+// Pair abcjs note/rest glyphs (in staff order) with our flat model, then keep
+// only the SOUNDING onsets (rests skipped, tie continuations skipped) so the ids
+// line up with soundingNotes()/the mark map.
+//
+// The feedback lane must line up with the DRAWN notes, and abcjs does NOT space
+// notes linearly in time (a quarter is not 4× the width of a sixteenth). So we
+// don't scale by a constant pixels-per-unit. Instead we record, for every glyph,
+// its musical onset (absolute units) and its measured x, building a piecewise-
+// linear map anchors[] = [{u, x}, …]. timeToX(u) then interpolates a musical time
+// to the real on-screen x between the two surrounding anchors. Everything the
+// lane draws (onset, held length, error offset) goes through timeToX, so it
+// tracks whatever spacing abcjs chose.
+let noteGeom = [];          // per sounding-note {id, cx, baseY, laneY}
+let anchors = [];           // [{u, x}] musical-onset → drawn-x, in staff order
+let overlaySvg = null;
+let scoreDims = {w:0, h:0};
+
+function measureNotes(bars, abcSvg){
+  noteGeom = [];
+  anchors = [];
+  const glyphs = [...abcSvg.querySelectorAll('.abcjs-note, .abcjs-rest')];
+  const flat = flatBars();
+  const n = Math.min(glyphs.length, flat.length);
+
+  // Anchor every glyph (notes AND rests) so the map stays dense even across a
+  // rest, and the tie continuations still contribute their x for held lengths.
+  for(let k=0;k<n;k++){
+    const m = flat[k];
+    const u = m.bi*BAR + m.onset;
+    const c = center(glyphs[k]);
+    anchors.push({ u, x: c.x });
+    if(m.rest) continue;
+    if(k>0 && flat[k-1].tie && !flat[k-1].rest) continue;   // tie continuation
+    noteGeom.push({ id:m.id, cx:c.x, baseY:c.y, laneY:c.bottom + 10 });
+  }
+  // A trailing anchor at the end of the bar block lets the last note's held
+  // length and the final barline map somewhere real instead of running off the
+  // last note's x. Use the terminating barline glyph if abcjs drew one.
+  const bar = abcSvg.querySelector('.abcjs-bar');
+  const lastU = bars.length * BAR;
+  if(anchors.length){
+    const lastAnchor = anchors[anchors.length-1];
+    let endX;
+    if(bar){ endX = center(bar).x; }
+    // fall back: extend by the last measured gap so a final note still has span
+    if(endX == null || endX <= lastAnchor.x){
+      const prev = anchors[anchors.length-2] || {u:lastAnchor.u-1, x:lastAnchor.x-6};
+      const du = lastAnchor.u - prev.u || 1;
+      endX = lastAnchor.x + (lastAnchor.x - prev.x)/du * (lastU - lastAnchor.u || du);
+    }
+    anchors.push({ u: lastU, x: endX });
+  }
+}
+
+// Interpolate a musical time (absolute units) to a real drawn x, piecewise
+// between the measured anchors. Outside the range we extend the nearest segment.
+function timeToX(u){
+  if(!anchors.length) return 0;
+  if(u <= anchors[0].u) return anchors[0].x;
+  for(let i=1;i<anchors.length;i++){
+    if(u <= anchors[i].u){
+      const a = anchors[i-1], b = anchors[i];
+      const t = (u - a.u) / ((b.u - a.u) || 1);
+      return a.x + t*(b.x - a.x);
+    }
+  }
+  const a = anchors[anchors.length-2] || anchors[0], b = anchors[anchors.length-1];
+  const slope = (b.x - a.x) / ((b.u - a.u) || 1);
+  return b.x + slope*(u - b.u);
+}
+
+function center(el){
+  const b = el.getBBox();
+  return { x: b.x + b.width/2, y: b.y + b.height/2, bottom: b.y + b.height };
+}
+
+function drawOverlay(markMap, w, h){
+  overlaySvg = scoreEl.querySelector('.abc-overlay');
+  if(!overlaySvg){
+    overlaySvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    overlaySvg.setAttribute('class','abc-overlay');
+    scoreEl.querySelector('.abc-canvas').appendChild(overlaySvg);
+  }
+  // align the overlay with the abc svg (it lives inside .abc-canvas, offset 0)
+  overlaySvg.setAttribute('width', w);
+  overlaySvg.setAttribute('height', h);
+  overlaySvg.style.width = w + 'px';
+  overlaySvg.style.height = h + 'px';
+
+  let inner = `<line id="ph" x1="0" y1="0" x2="0" y2="0" stroke="${C_INK}"
+                 stroke-width="1.2" opacity="0"/>`;
+  if(markMap){
+    for(const g of noteGeom){
+      const mk = markMap.get(g.id);
+      if(mk) inner += feedback(g, mk);
+    }
+    // extra taps: no note geometry to key off, so place them by unit position
+    for(const [id, mk] of markMap){
+      if(mk.status !== 'extra') continue;
+      inner += feedbackExtra(mk, markMap);
+    }
+  }
+  overlaySvg.innerHTML = inner;
+  playhead = overlaySvg.querySelector('#ph');
+}
+
+// Map a musical time (absolute units) to an on-screen point. x rides the same
+// measured-anchor map as the feedback lane, so the playhead tracks the DRAWN
+// note spacing exactly (not a constant width). y comes from the nearest note so
+// it follows the staff down onto a wrapped row.
+function unitToPoint(absUnits){
+  if(!noteGeom.length) return null;
+  const x = timeToX(absUnits);
+  return { x, y: laneBaseYNear(x) };
+}
+// baseline (staff centre) of the nearest note by x
+function laneBaseYNear(x){
+  let best = noteGeom[0];
+  for(const g of noteGeom) if(Math.abs(g.cx - x) < Math.abs(best.cx - x)) best = g;
+  return best.baseY;
+}
+function onsetUnitsOf(id){
+  const s = soundingNotes().find(n => n.id === id);
+  return s ? s.abs : 0;
 }
 
 function movePlayhead(units){
   if(!playhead) return;
   if(units === null){ playhead.setAttribute('opacity','0'); return; }
-  const row = Math.min(bars.length-1, Math.floor(units/BAR));
-  const x = xAt(units - row*BAR);
-  const y = row*ROW_H;
-  playhead.setAttribute('x1', x); playhead.setAttribute('x2', x);
-  playhead.setAttribute('y1', y + BASE - 34);
-  playhead.setAttribute('y2', y + BASE + 26);
+  const p = unitToPoint(units);
+  if(!p){ playhead.setAttribute('opacity','0'); return; }
+  playhead.setAttribute('x1', p.x); playhead.setAttribute('x2', p.x);
+  playhead.setAttribute('y1', p.y - 32);
+  playhead.setAttribute('y2', p.y + 22);
   playhead.setAttribute('opacity','0.5');
 }
 
