@@ -1,5 +1,8 @@
+- [ ] Organize code to files (without a build for web)
 - [ ] Use half rests + dots instead of repeated quarter rests
 - [ ] Add repetition checker: avoid generating the same assignments again (we already remember previous ones)
 - [ ] Level 3 to add also eitght rests, as well as half rests. Current level 4 can then be removed.
 - [ ] Introduce dotted notes and rests
+- [ ] Triplets that start/end with a rest
+- [ ] See if we can layout more flexibly to ensure fit in case of sixteenths and rests especially
 - [ ] Add more time signatures. Maybe use a selector for this instead of the levels.
