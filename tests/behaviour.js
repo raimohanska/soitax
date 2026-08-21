@@ -62,6 +62,7 @@ const key = (type,code) => win.dispatchEvent(new win.KeyboardEvent(type,{code,bu
 
 setTimeout(() => {
   const pad = doc.getElementById('pad');
+  ok(!!doc.querySelector('#hear svg'),'show-me button has a lifesaver icon');
 
   console.log('=== beamed patterns are generated (level 3 teaches them) ===');
   for(let i=0;i<2;i++) ev(doc.getElementById('lvUp'),'click');   // to level 3

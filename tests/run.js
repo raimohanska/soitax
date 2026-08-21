@@ -49,6 +49,7 @@ setTimeout(() => {
   ok((window.__onsets||[]).length > 0, 'sounding notes present');
   ok(doc.getElementById('lvTxt').textContent.includes('Level 1'), 'level 1 shown');
   ok(doc.getElementById('padMain').textContent === 'Begin', 'pad idle label');
+  ok(doc.getElementById('pad').classList.contains('begin'), 'begin pad has its persistent pulse state');
 
   // ---- every level & many patterns generate cleanly ----
   console.log('\n=== pattern generation across all levels ===');
@@ -87,6 +88,7 @@ setTimeout(() => {
   pd();
   setTimeout(() => {
     ok(pad.dataset.m === 'count' || pad.dataset.m === 'play', 'entered count-in after begin (mode=' + pad.dataset.m + ')');
+    ok(!pad.classList.contains('begin'), 'begin pulse stops during an attempt');
     ok(doc.getElementById('lvUp').disabled, 'level buttons locked during run');
 
     // advance the fake clock through count-in into the pattern

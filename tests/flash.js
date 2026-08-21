@@ -34,6 +34,8 @@ const accent=()=>G('pad').classList.contains('flash-accent');
   console.log('=== flash elements exist ===');
   ok(d.querySelectorAll('#beats i').length===4,'four beat dots, one per beat of the bar');
   ok(!!G('silent'),'silent toggle present');
+  ok(!!G('silent').querySelector('svg'),'sound toggle has a speaker icon');
+  ok(G('silent').getAttribute('aria-pressed')==='false','sound toggle starts unpressed');
   ok(!lit(),'nothing flashing while idle');
 
   console.log('\n=== flash maps to the correct beat ===');
@@ -69,6 +71,7 @@ const accent=()=>G('pad').classList.contains('flash-accent');
   await sleep(40);
   console.log('  toggle now reads:', G('silent').textContent);
   ok(/silent/i.test(G('silent').textContent),'toggle reflects silent state');
+  ok(G('silent').getAttribute('aria-pressed')==='true','silent state is exposed accessibly');
   w.__hats.length=0; w.__osc=0;
   tap(); await sleep(50);
   w.__advance(beat*0.5); await sleep(20);
@@ -97,6 +100,7 @@ const accent=()=>G('pad').classList.contains('flash-accent');
   G('silent').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));   // sound back on
   await sleep(30);
   ok(/sound on/i.test(G('silent').textContent),'toggle returned to audible');
+  ok(G('silent').getAttribute('aria-pressed')==='false','audible state is exposed accessibly');
 
   console.log('\n' + (fails===0?'=== ALL PASSED ===':`=== ${fails} FAILURES ===`));
   process.exit(fails?1:0);
