@@ -182,14 +182,15 @@ complete them.
 
 ## Deploying
 
-There is only ever one branch: `main`. Never create, check out, or push to any
-other branch — work directly on `main`, always.
+There is only ever one branch: `main`. Never create or check out another branch —
+work directly on `main`, always.
 
 When the user says "deploy" (just that word, in response to changes you've made),
-commit the current changes with a clear descriptive message and push to `origin
-main`. Don't ask for confirmation first — "deploy" is the confirmation. If
-there's nothing uncommitted and nothing unpushed, say so instead of creating an
-empty commit.
+commit the current changes with a clear descriptive message. Don't ask for
+confirmation first — "deploy" is the confirmation. This devcontainer cannot
+push; never attempt to push from it. The user will push the commit outside the
+devcontainer. If there's nothing uncommitted, say so instead of creating an empty
+commit.
 
 ## Conventions
 
