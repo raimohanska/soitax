@@ -12,7 +12,7 @@ npm run test:one flash   # a single suite
 npm run serve            # http://localhost:8099 — needed to exercise the service worker
 ```
 
-Tests need `jsdom` and `sharp` installed inside `tests/` (`cd tests && npm i`).
+Tests need `jsdom` installed inside `tests/` (`cd tests && npm i`).
 
 ## Architecture, and why it's shaped this way
 
@@ -54,27 +54,28 @@ because abcjs's own auto-beaming crosses the bar midpoint. abcjs loads from its
 own `<script>` and is cached by the service worker; `renderScore` no-ops
 gracefully if it (or `getBBox`) is unavailable, so the app logic still runs.
 
-Much of the old hand-rolled SVG builder code (`renderBar`, `notehead`, rest
-glyphs, `C_INK`/`C_STAFF` constants) is now dead but left in place for reference.
+The old hand-rolled SVG builder code (`renderBar`, `notehead`, rest glyphs, the
+`VW`/`BASE`/`xAt` layout constants) has been removed. Only the paint colours
+(`C_INK`, `C_STAFF`, …) survive, reused by the feedback overlay and abcjs styling.
 
 ## Environment constraints — these caused real, shipped bugs
 
 **`var()` does not work in SVG presentation attributes.** `fill="var(--ink)"`
 resolves to nothing and the glyph is invisible. Only real CSS properties resolve
-custom properties. All paint values in the SVG builders are literal hex
-constants (`C_INK`, `C_STAFF`, …). Keep them that way. `tests/contrast.js`
-audits every `fill`/`stroke` and fails on anything that isn't hex or `none`.
+custom properties. The feedback overlay's paint values are therefore literal hex
+constants (`C_INK`, `C_STAFF`, …); abcjs itself paints its glyphs via the CSS
+`color` property (`styleAbc`), which does resolve. Keep both literal.
 
-**The SVG needs explicit pixel dimensions.** iOS WKWebView will not derive
-height from a `viewBox` alone with CSS `height:auto` — the element collapses to
-zero height and the notation vanishes while remaining perfectly correct in the
-DOM. `renderScore()` computes real px and pins them via attributes *and* inline
-style. `tests/layout.js` asserts on this.
+**The notation SVG needs explicit pixel dimensions.** iOS WKWebView will not
+derive height from a `viewBox` alone with CSS `height:auto` — the element
+collapses to zero height and the notation vanishes while remaining perfectly
+correct in the DOM. `renderScore()` reads abcjs's rendered height and pins it via
+attribute *and* inline style; the overlay `<svg>` is sized to match.
 
 **Don't rely on the host page background.** The Claude iOS webview renders on a
 light surface and ignored our page background, so white-on-dark notation was
-invisible. The score SVG therefore paints **its own background panel** as its
-first child. Keep that.
+invisible. `#score` therefore carries **its own opaque background panel** (set in
+`styleAbc`). Keep that.
 
 **Mobile audio output lags ~100ms and browsers under-report it.** iOS gives no
 `outputLatency`, so an accurate player looks consistently late. `calMs` is a
@@ -87,7 +88,8 @@ only have one or two notes, which must not stall calibration). Persisted.
   beat or longer break a group. Mixed groups get a primary beam across all, with
   secondary beams under the sixteenths only.
 - A tie must **cross a beat boundary** — two eighths tied inside one beat is just
-  a quarter note badly spelled. Guarded in `makeBar`, asserted in `tests/ties.js`.
+  a quarter note badly spelled. Guarded in `makeBar` (the dedicated tie render
+  tests went away with the hand-rolled SVG; the rule now lives in the model).
 - Ties may cross the bar line, drawn as a broken tie (a half running past the
   barline, a half coming in from the left margin of the next row).
 - Every pattern must contain at least 2 sounding notes; an all-rest bar gives the

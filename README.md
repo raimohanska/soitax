@@ -16,10 +16,9 @@ wrong, because note length is half of what the notation is telling you.
 - **Ten levels**, staged the way rhythm reading is usually taught: quarter notes
   → half notes → beamed eighth pairs → rests → off-beat eighths → ties and
   syncopation → sixteenths → triplets.
-- **Real notation**, drawn as SVG: proper beam grouping by beat (pairs of
-  eighths, fours of sixteenths, secondary beams under sixteenths only),
-  conventional rest glyphs, dotted notes, triplet brackets, and ties — including
-  ties across the bar line, engraved as a broken tie.
+- **Real notation**, engraved by [abcjs](https://abcjs.net): proper beam
+  grouping by beat (pairs of eighths, fours of sixteenths), conventional rest
+  glyphs, dotted notes, triplets, and ties — including ties across the bar line.
 - **Feedback lane** under each staff showing, per note, how far off your onset
   was and how long you actually held it against the written value.
 - **Latency self-calibration.** Phone audio output lags by ~100 ms and browsers
@@ -68,14 +67,14 @@ Cloudflare Pages. No build command; the output directory is the repo root.
 
 ```bash
 cd tests
-npm install jsdom sharp
+npm install
 node all.js
 ```
 
-17 suites covering notation rules, grading behaviour, control states,
-rendering, and the installable/offline contract. See [tests/README.md](tests/README.md) — including an honest account
-of what they *can't* catch, which is most of what actually broke during
-development.
+13 suites covering grading behaviour, control states, pattern variety, and the
+installable/offline contract. Notation is rendered by abcjs (not loaded under
+jsdom), so the tests assert on the model and DOM state — see
+[tests/README.md](tests/README.md).
 
 ## Licence
 

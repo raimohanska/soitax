@@ -535,18 +535,9 @@ function beamGroups(bar){
   flush();
   return groups;
 }
-function sixteenthRuns(bar, group){
-  const runs = []; let cur = [];
-  for(const i of group){
-    if(bar[i].dur <= 3) cur.push(i);
-    else { if(cur.length > 1) runs.push(cur); cur = []; }
-  }
-  if(cur.length > 1) runs.push(cur);
-  return runs;
-}
 
 /* ══════════════════════════════════════════════════════════
-   2b. ABC TRANSLATION  (spike: feed abcjs instead of hand-rolled SVG)
+   2b. ABC TRANSLATION  (feed abcjs instead of hand-rolled SVG)
    ══════════════════════════════════════════════════════════ */
 // Our cell model is unit-based (U=12 units/beat; sixteenth=3). With ABC's
 // L:1/16 default, a plain note's written length is dur/3 sixteenths. Triplet
@@ -617,171 +608,20 @@ function barsToAbc(bars){
 }
 
 /* ══════════════════════════════════════════════════════════
-   3. SVG NOTATION
+   3. NOTATION — rendered by abcjs; see renderScore() below.
    ══════════════════════════════════════════════════════════ */
-// SVG presentation attributes (fill=, stroke=) do NOT resolve var() —
-// only real CSS properties do. So paint values must be literal here.
-const C_INK = '#141418', C_STAFF = '#8b8b93', C_MUTE = '#6d6d75', C_MISS = '#c0392b';
+// Paint values for the feedback overlay and the abcjs panel. abcjs colours its
+// glyphs via the CSS `color` property (see styleAbc), and the overlay <svg> uses
+// these as literal fills — SVG presentation attributes don't resolve var().
+const C_INK = '#141418', C_STAFF = '#8b8b93', C_MISS = '#c0392b';
 const C_OK = '#1f8a4c', C_WARN = '#b07d10';   // sustain right / sustain off
 const C_PANEL = '#f7f7f5', C_EDGE = '#e3e3de';
-
-const VW = 320;            // viewBox width; CSS scales it
-const PAD_L = 62, PAD_R = 10;
-const SPAN = VW - PAD_L - PAD_R;
-const BASE = 62;           // staff line y within a row
-const ROW_H = 112;
-const STEM = 30, BEAM_T = 4.6, BEAM_GAP = 6.4;
-const SW = 6.0;            // notehead half-width (stem offset)
-
-// A note is not centred on BASE: the head sits on it but the stem runs 30px
-// up, so the ink of a note column spans BASE-STEM .. BASE+headRadius and its
-// optical centre is well above the line. Rests have no stem, so centring them
-// on BASE leaves them visibly sunk against the notes around them. Everything
-// stemless (rests, the time signature) centres on this axis instead.
-const NOTE_MID = BASE - (STEM - 4.1) / 2;   // ≈ BASE-13
-
-const xAt = u => PAD_L + (u/BAR)*SPAN;
-
-function notehead(x, filled, id){
-  const f = filled ? C_INK : 'none';
-  return `<ellipse id="${id}" cx="${x}" cy="${BASE}" rx="5.9" ry="4.1"
-    transform="rotate(-20 ${x} ${BASE})" fill="${f}"
-    stroke="${C_INK}" stroke-width="${filled ? 0 : 1.7}"/>`;
-}
-const stemUp = (x, top) =>
-  `<line x1="${x+SW}" y1="${BASE-1.2}" x2="${x+SW}" y2="${top}" stroke="${C_INK}" stroke-width="1.6"/>`;
-
-// single/double flag for unbeamed eighths & sixteenths
-function flags(x, n){
-  const top = BASE - STEM;
-  let s = '';
-  for(let i=0;i<n;i++){
-    const y = top + i*6.4;
-    s += `<path d="M${x+SW} ${y} C ${x+SW+9} ${y+3.4}, ${x+SW+7} ${y+10}, ${x+SW+4.4} ${y+13.4}
-           C ${x+SW+7.4} ${y+7}, ${x+SW+4} ${y+5.4}, ${x+SW} ${y+6}Z" fill="${C_INK}"/>`;
-  }
-  return s;
-}
-const dotAfter = x =>
-  `<circle cx="${x+11.5}" cy="${BASE-2}" r="1.75" fill="${C_INK}"/>`;
-
-/* rests -------------------------------------------------- */
-
-// Quarter rest: the real engraved glyph, not an approximation. Hand-built
-// zig-zags never looked right — the curve of the tail and the taper of each
-// stroke are what make it read as a rest rather than a squiggle. Outline taken
-// from openclipart.org/detail/93883 (public domain), normalised here to 25px
-// tall and centred on the origin, so the transform below is the only thing
-// that positions it. Do not "tidy" the numbers; they are a traced outline.
-const QREST = `M3.57 -6.15C3.57 -4.56 0.40 -2.18 0.40 0.99C0.40 2.18 2.78 5.75 4.37 7.74
-  C3.57 7.34 2.78 6.94 1.59 6.94C-0.79 6.94 -1.59 8.93 -1.59 10.12
-  C-1.59 10.91 -0.79 11.71 -0.40 12.50C-2.78 10.91 -4.37 9.33 -4.37 7.74
-  C-4.37 3.77 -1.65 5.16 0.33 4.37C-1.65 2.38 -3.57 -0.60 -3.57 -1.79
-  C-3.57 -2.58 -1.19 -5.36 -0.40 -7.34C-0.40 -7.34 -0.40 -8.53 -0.40 -8.53
-  C-0.40 -9.72 -1.19 -11.31 -1.59 -12.50C0.00 -10.52 3.57 -6.94 3.57 -6.15Z`;
-
-function restQuarter(x){
-  // the hairline stroke keeps the thin waist of the glyph from disappearing
-  // once the SVG is scaled down to phone width
-  return `<g transform="translate(${x} ${NOTE_MID})"><path d="${QREST}"
-    fill="${C_INK}" stroke="${C_INK}" stroke-width="0.5"
-    stroke-linejoin="round" stroke-linecap="round"/></g>`;
-}
-// eighth and sixteenth rests, same provenance: freesvg.org (public domain),
-// "Rests 8 Eigth" and "Rests 16 Sixteenth". Their source files were each
-// scaled to fill their own page, so the two arrived at nearly identical
-// aspect ratios despite the sixteenth carrying an extra hook — sizing them by
-// height or width would have left the sixteenth with visibly finer strokes.
-// They are scaled here so their STEM WEIGHT matches instead (measured off a
-// raster of each: 24 vs 23 units at a common height), which is what makes them
-// read as one family — 22px for the eighth, and 26.04px for the sixteenth.
-//
-// That 26.04 is then knocked back to 80% (20.83px). Matched stem weight is the
-// right rule for a glyph family in isolation, but a sixteenth rest only ever
-// appears in a bar of sixteenths, where the slot is SPAN/16 wide — the correctly
-// proportioned glyph simply does not fit and collides with its neighbours.
-// Fitting the space wins over matching the family here.
-//
-// The 0.7 stroke in restGlyph is also not decoration: this art has hairline
-// stems that render lighter than the note stem (1.6px), so without it the
-// rests look anaemic beside the notes and the openclipart quarter rest. Note
-// the stroke is NOT scaled with the outline, so shrinking the sixteenth above
-// leaves it slightly bolder in proportion — which happens to buy back some of
-// the weight lost to the smaller size.
-//
-// Orientation is the trap here. The source wraps the outline in
-// matrix(s,0,0,-s,0,0) — a Y flip — which looks like it needs undoing when the
-// raw path data is lifted out. It does not: the data is already stored flipped,
-// so negating y lands the glyph upside down (hook at the bottom, stem rising)
-// and it still reads plausibly enough at a glance to survive review. These
-// coordinates are the right way up; the blob belongs at the TOP, with the stem
-// descending to the lower right.
-const REST8 = `M5.58 -10.51C6.93 -10.49 6.89 -10.46 6.89 -10.46L0.39 11.00 -0.92 11.00 4.18 -5.77C4.18 -5.77
-  3.78 -5.39 3.55 -5.23 3.10 -4.91 2.61 -4.65 2.11 -4.43 1.61 -4.20 1.09 -4.01 0.55 -3.89 -0.09
-  -3.74 -0.74 -3.65 -1.40 -3.63 -2.00 -3.61 -2.62 -3.63 -3.21 -3.76 -3.81 -3.87 -4.41 -3.96 -5.35
-  -4.56 -5.76 -4.81 -6.27 -5.39 -6.53 -5.92 -6.83 -6.60 -6.94 -7.39 -6.87 -8.13 -6.83 -8.63 -6.65
-  -9.14 -6.37 -9.56 -6.08 -9.99 -5.67 -10.37 -5.22 -10.61 -4.80 -10.85 -4.32 -10.96 -3.85 -10.99
-  -3.51 -11.02 -3.16 -10.95 -2.83 -10.87 -2.43 -10.77 -2.11 -10.61 -1.77 -10.37 -1.56 -10.22 -1.32
-  -10.06 -1.18 -9.85 -1.00 -9.61 -0.84 -9.35 -0.73 -9.08 -0.62 -8.84 -0.55 -8.58 -0.50 -8.32 -0.45
-  -8.00 -0.48 -7.68 -0.50 -7.36 -0.53 -7.06 -0.63 -6.77 -0.75 -6.50 -0.90 -6.18 -1.09 -5.95 -1.33
-  -5.70 -1.55 -5.47 -2.00 -5.03 -2.00 -5.03L-1.42 -4.82 -0.13 -4.99 1.22 -5.42 2.49 -6.02 3.89
-  -7.07 4.65 -7.95 5.46 -9.88 5.58 -10.51Z`;
-
-const REST16 = `M6.46 -9.49L5.54 -9.45C5.54 -9.45 5.02 -7.80 4.49 -7.14 4.18 -6.75 3.32 -6.26 3.32 -6.26L2.26
-  -5.76 1.14 -5.40C1.14 -5.40 0.42 -5.22 0.06 -5.26 -0.11 -5.28 -0.42 -5.43 -0.42 -5.43 -0.24 -5.62
-  -0.05 -5.80 0.14 -5.99 0.34 -6.20 0.50 -6.39 0.62 -6.66 0.72 -6.89 0.80 -7.13 0.82 -7.38 0.85
-  -7.65 0.86 -7.91 0.82 -8.18 0.79 -8.40 0.73 -8.62 0.64 -8.82 0.54 -9.04 0.41 -9.26 0.26 -9.46
-  0.14 -9.63 -0.06 -9.77 -0.23 -9.90 -0.52 -10.09 -0.78 -10.22 -1.12 -10.30 -1.39 -10.38 -1.69
-  -10.43 -1.97 -10.41 -2.36 -10.38 -2.77 -10.29 -3.11 -10.10 -3.49 -9.89 -3.83 -9.58 -4.07 -9.22
-  -4.30 -8.86 -4.46 -8.44 -4.50 -8.02 -4.55 -7.40 -4.46 -6.74 -4.20 -6.18 -3.99 -5.73 -3.56 -5.26
-  -3.22 -5.04 -2.44 -4.54 -1.94 -4.46 -1.44 -4.38 -0.94 -4.26 -0.42 -4.25 0.08 -4.26 0.62 -4.28
-  1.17 -4.35 1.70 -4.48 2.15 -4.58 2.58 -4.74 3.01 -4.93 3.42 -5.11 3.96 -5.46 4.34 -5.72 4.53
-  -5.86 3.22 -1.38 3.22 -1.38L2.54 -0.67 1.38 0.20 0.32 0.70 -0.81 1.06C-0.81 1.06 -1.53 1.23 -1.89
-  1.20 -2.06 1.18 -2.37 1.02 -2.37 1.02 -2.18 0.84 -1.99 0.66 -1.81 0.46 -1.61 0.26 -1.45 0.06
-  -1.33 -0.20 -1.22 -0.42 -1.14 -0.67 -1.12 -0.92 -1.10 -1.18 -1.08 -1.46 -1.12 -1.72 -1.15 -1.94
-  -1.22 -2.15 -1.30 -2.35 -1.40 -2.58 -1.54 -2.80 -1.68 -3.00 -1.80 -3.17 -2.01 -3.31 -2.18 -3.43
-  -2.46 -3.62 -2.73 -3.77 -3.06 -3.85 -3.34 -3.92 -3.63 -3.98 -3.91 -3.95 -4.30 -3.93 -4.70 -3.83
-  -5.06 -3.63 -5.43 -3.42 -5.78 -3.12 -6.02 -2.76 -6.25 -2.40 -6.39 -1.98 -6.44 -1.56 -6.50 -0.94
-  -6.41 -0.28 -6.14 0.28 -5.94 0.74 -5.50 1.21 -5.17 1.42 -4.38 1.92 -3.88 1.99 -3.38 2.09 -2.88
-  2.19 -2.37 2.21 -1.86 2.19 -1.32 2.18 -0.78 2.10 -0.24 1.98 0.21 1.88 0.65 1.72 1.06 1.53 1.48
-  1.34 2.06 1.14 2.43 0.87 2.54 0.70 0.78 6.72 -0.15 10.33 0.48 10.42 0.44 10.45 0.92 10.38 1.90
-  7.41 5.44 -5.43 6.46 -9.49Z`;
-
-const restGlyph = (x, d) =>
-  `<g transform="translate(${x} ${NOTE_MID})"><path d="${d}" fill="${C_INK}"
-    stroke="${C_INK}" stroke-width="0.7" stroke-linejoin="round" stroke-linecap="round"/></g>`;
-
-const restEighth    = x => restGlyph(x, REST8);
-const restSixteenth = x => restGlyph(x, REST16);
-// half rest: a filled bar sitting on its ledger, the pair centred on NOTE_MID
-const restHalf = x =>
-  `<rect x="${x-5}" y="${NOTE_MID-2.85}" width="10" height="4.6" fill="${C_INK}"/>
-   <line x1="${x-8}" y1="${NOTE_MID+1.75}" x2="${x+8}" y2="${NOTE_MID+1.75}"
-     stroke="${C_INK}" stroke-width="1.1"/>`;
-
-function restFor(x, dur){
-  if(dur >= 24) return restHalf(x);
-  if(dur >= 12) return restQuarter(x);
-  // dur=4 is a triplet-eighth rest: an eighth slot inside a triplet, so it
-  // gets an eighth glyph (one hook), not the sixteenth glyph the fallthrough
-  // would give it.
-  if(dur >= 6 || dur === 4)  return restEighth(x);
-  return restSixteenth(x);
-}
-
-/* SPIKE: the hand-rolled per-bar SVG renderer (renderBar) and its glyph
-   builders below (notehead/stemUp/flags/rests/…) are superseded by abcjs and no
-   longer called. They're kept in place for now so the diff stays legible and the
-   old approach is easy to diff against; they will be removed once the spike is
-   judged. renderScore() above is the live entry point. */
-
-
 
 // The feedback lane sits under the staff. For each note it draws the NOTATED
 // span as a hollow outline, and what you actually played as a solid bar —
 // shifted left/right by your onset error and as long as you actually held it.
 // Reading the two against each other shows timing and sustain at a glance.
-// SPIKE: positions now come from the abcjs-measured geometry (g), not xAt.
+// Positions come from the abcjs-measured geometry (g), mapped through timeToX.
 const LANE_H = 5;
 
 function feedback(g, mk){
@@ -863,13 +703,13 @@ function scoreWidth(){
   return Math.max(240, Math.round(w));
 }
 
-/* ── SPIKE: abcjs renderer ────────────────────────────────────────────────
-   abcjs owns note layout, so the feedback lane and playhead can no longer be
-   built on our xAt(). Instead, after abcjs draws, we read each note's on-screen
-   position out of the SVG (getBBox) and pair those, in staff order, with the
-   sounding events. Everything downstream (feedback(), the playhead) keys off
-   that map instead of a unit→x formula. The lane and playhead are drawn into a
-   SEPARATE overlay <svg> layered over abcjs's, so abcjs's own DOM stays intact.
+/* ── abcjs renderer ───────────────────────────────────────────────────────
+   abcjs owns note layout, so the feedback lane and playhead can't be built on a
+   unit→x formula. After abcjs draws, we read each note's on-screen position out
+   of the SVG (getBBox) and pair those, in staff order, with the sounding events.
+   Everything downstream (feedback(), the playhead) keys off that map. The lane
+   and playhead are drawn into a SEPARATE overlay <svg> layered over abcjs's, so
+   abcjs's own DOM stays intact.
    ------------------------------------------------------------------------- */
 
 // A stable colour scheme for abcjs (it paints via CSS `color`/currentColor).
