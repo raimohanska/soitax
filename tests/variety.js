@@ -25,7 +25,7 @@ function fingerprint(){
 }
 setTimeout(()=>{
   let fails=0;
-  for(let lv=1;lv<=10;lv++){
+  for(let lv=1;lv<=11;lv++){
     if(lv>1) click(d.getElementById('lvUp'));
     const seen=new Set(); const N=60;
     for(let i=0;i<N;i++){ click(d.getElementById('nextBtn')); seen.add(fingerprint()); }
@@ -37,7 +37,7 @@ setTimeout(()=>{
   // no pattern may be empty — a bar of pure rests gives the reader nothing to do
   console.log('\n--- minimum content ---');
   let empties=0, thin=0;
-  for(let lv=1;lv<=10;lv++){
+  for(let lv=1;lv<=11;lv++){
     for(let i=0;i<100;i++){
       click(d.getElementById('nextBtn'));
       const heads=(w.__onsets||[]).length;

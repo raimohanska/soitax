@@ -198,7 +198,7 @@ empty commit.
 - `index.html` is the app; keep it self-contained. `manifest.webmanifest`,
   `sw.js`, and the icons are optional enhancements — service worker registration
   is gated on `location.protocol` so opening the bare file still works.
-- Persisted state lives under one key (`soitax-v3`) via `store`, which prefers the
+- Persisted state lives under one key (`soitax-v4`) via `store`, which prefers the
   Claude webview's `window.storage` and falls back to `localStorage` everywhere
   else. That fallback is not optional: `window.storage` does not exist in Safari,
   and without it every get/set threw into a silent catch, so nothing at all was

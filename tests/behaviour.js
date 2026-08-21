@@ -90,6 +90,24 @@ setTimeout(() => {
     if((win.__abc || '').includes('-')) tied = true;
   }
   ok(!tied, 'level 3 never generates ties');
+  ev(doc.getElementById('lvUp'),'click');   // to level 4
+  let dotted = false;
+  tied = false;
+  for(let i=0;i<60;i++){
+    ev(doc.getElementById('nextBtn'),'click');
+    if((win.__durations || []).includes(18)) dotted = true;
+    if((win.__abc || '').includes('-')) tied = true;
+  }
+  ok(dotted, 'level 4 generates dotted quarter notes');
+  ok(!tied, 'level 4 never generates ties');
+  for(let i=0;i<5;i++) ev(doc.getElementById('lvUp'),'click');   // to level 9
+  let dottedEighth = false;
+  for(let i=0;i<120 && !dottedEighth;i++){
+    ev(doc.getElementById('nextBtn'),'click');
+    dottedEighth = (win.__durations || []).includes(9);
+  }
+  ok(dottedEighth, 'level 9 generates dotted eighth notes');
+  for(let i=0;i<5;i++) ev(doc.getElementById('lvDown'),'click'); // back to level 4
   const label = doc.getElementById('hear').textContent.trim();
   ok(label === 'Show me', `button renamed to "Show me" (got "${label}")`);
 

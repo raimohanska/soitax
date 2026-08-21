@@ -13,8 +13,8 @@ loose — a correct read with sloppy timing passes; a wrong read doesn't. What i
 *does* insist on is **sustain**: a half note held like a staccato stab is marked
 wrong, because note length is half of what the notation is telling you.
 
-- **Ten levels**, staged the way rhythm reading is usually taught: quarter notes
-  → half notes → eighth notes and rests → ties and
+- **Eleven levels**, staged the way rhythm reading is usually taught: quarter notes
+  → half notes → eighth notes and rests → dotted quarters → ties and
   syncopation → sixteenths → triplets.
 - **Real notation**, engraved by [abcjs](https://abcjs.net): proper beam
   grouping by beat (pairs of eighths, fours of sixteenths), conventional rest

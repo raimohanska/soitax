@@ -56,7 +56,7 @@ setTimeout(() => {
   const up = doc.getElementById('lvUp');
   const fresh = doc.getElementById('nextBtn');
 
-  for(let lv=1; lv<=10; lv++){
+  for(let lv=1; lv<=11; lv++){
     for(let n=0; n<20; n++){
       fresh.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
       const onsets = window.__onsets;
@@ -66,7 +66,7 @@ setTimeout(() => {
       if(/NaN|undefined|Infinity/.test(abc) || !abc) bad++;
       checked++;
     }
-    if(lv < 10) up.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+    if(lv < 11) up.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
   }
   ok(bad === 0, `all ${checked} generated patterns are non-empty with clean ABC (bad: ${bad})`);
 
@@ -74,7 +74,7 @@ setTimeout(() => {
   console.log('\n=== attempt lifecycle ===');
   const pad = doc.getElementById('pad');
   const down = doc.getElementById('lvDown');
-  for(let i=0;i<9;i++) down.dispatchEvent(new window.MouseEvent('click',{bubbles:true})); // back to lv1
+  for(let i=0;i<10;i++) down.dispatchEvent(new window.MouseEvent('click',{bubbles:true})); // back to lv1
   ok(doc.getElementById('lvTxt').textContent.includes('Level 1'), 'stepped back to level 1');
 
   const tap = () => {

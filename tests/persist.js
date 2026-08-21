@@ -21,8 +21,8 @@ window.AudioContext=AC;window.__advance=d=>{t+=d;};})();`;
 
 // `seed` is written to localStorage before the app script runs — that is what a
 // relaunch looks like from the app's point of view.
-function boot(seed){
-  const pre = seed ? `localStorage.setItem('soitax-v1',${JSON.stringify(seed)});` : '';
+function boot(seed, key='soitax-v1'){
+  const pre = seed ? `localStorage.setItem(${JSON.stringify(key)},${JSON.stringify(seed)});` : '';
   const dom=new JSDOM(html.replace('<script>','<script>'+audio+pre),
     {runScripts:'dangerously',pretendToBeVisual:true,url:'https://example.com/'});
   return dom.window;
@@ -44,7 +44,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   d1.getElementById('silent').dispatchEvent(new w1.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(/silent/i.test(d1.getElementById('silent').textContent),'toggled to silent');
-  const raw=w1.localStorage.getItem('soitax-v3');
+  const raw=w1.localStorage.getItem('soitax-v4');
   console.log('  localStorage holds:', raw);
   ok(raw!==null,'something was actually persisted');
   const saved=JSON.parse(raw||'{}');
@@ -52,7 +52,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
   console.log('\n=== and are read back on the next launch ===');
   // This is the bug the user hit: silent had to be re-picked every launch.
-  const w2=boot(raw); const d2=w2.document;
+  const w2=boot(raw,'soitax-v4'); const d2=w2.document;
   await sleep(150);
   console.log('  toggle reads:', d2.getElementById('silent').textContent);
   ok(/silent/i.test(d2.getElementById('silent').textContent),
@@ -64,9 +64,19 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await sleep(150);
   console.log('  level:',d3.getElementById('lvTxt').textContent.trim(),
               ' bpm:',d3.getElementById('bpmVal').textContent);
-  ok(/Level 3/.test(d3.getElementById('lvTxt').textContent),'removed level 4 migrates to level 3');
+  ok(/Level 3/.test(d3.getElementById('lvTxt').textContent),'old removed level 4 migrates to level 3');
   ok(Number(d3.getElementById('bpmVal').textContent)===96,'chosen tempo restored');
   ok(/sound on/i.test(d3.getElementById('silent').textContent),'silent:false restored as sound on');
+
+  console.log('\n=== migration is committed and does not repeat on refresh ===');
+  const w5=boot(JSON.stringify({level:6,calMs:0,streak:0,userBpm:0,silent:false}),'soitax-v3');
+  await sleep(150);
+  ok(/Level 7/.test(w5.document.getElementById('lvTxt').textContent),'old level 6 migrates to new level 7');
+  const migrated=w5.localStorage.getItem('soitax-v4');
+  ok(JSON.parse(migrated||'{}').level===7,'migrated level written under current key');
+  const w6=boot(migrated,'soitax-v4');
+  await sleep(150);
+  ok(/Level 7/.test(w6.document.getElementById('lvTxt').textContent),'current level stays unchanged on refresh');
 
   console.log('\n=== a Claude-webview storage API still wins when present ===');
   // The webview provides its own storage; the fallback must not shove it aside.
@@ -79,7 +89,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   d4.getElementById('silent').dispatchEvent(new w4.MouseEvent('click',{bubbles:true}));
   await sleep(60);
   ok(w4.__usedHostStorage===true,'host storage used in preference to localStorage');
-  ok(w4.localStorage.getItem('soitax-v3')===null,'localStorage left untouched in the webview');
+  ok(w4.localStorage.getItem('soitax-v4')===null,'localStorage left untouched in the webview');
 
   console.log('\n' + (fails===0?'=== ALL PASSED ===':`=== ${fails} FAILURES ===`));
   process.exit(fails?1:0);

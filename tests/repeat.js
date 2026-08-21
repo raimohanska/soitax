@@ -26,7 +26,7 @@ setTimeout(()=>{
   // Level 1 has only ~16 distinct one-bar patterns, so the all-distinct window
   // must stay comfortably inside that; consecutive checks can run longer.
   const DISTINCT_WINDOW = 8, CONSEC_N = 40;
-  for(let lv=1;lv<=10;lv++){
+  for(let lv=1;lv<=11;lv++){
     if(lv>1) click(d.getElementById('lvUp'));
     const seen=new Set();
     let prev=w.__abc, consecBad=0;
