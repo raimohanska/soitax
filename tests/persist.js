@@ -37,7 +37,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const w1=boot(null); const d1=w1.document;
   await sleep(150);
   ok(w1.storage===undefined,'window.storage genuinely absent (Safari conditions)');
-  ok(d1.querySelectorAll('#score svg').length>0,'notation still renders');
+  ok((w1.__onsets||[]).length>0,'a pattern is generated');
   ok(/sound on/i.test(d1.getElementById('silent').textContent),'defaults to sound on');
 
   console.log('\n=== choices are written to localStorage ===');

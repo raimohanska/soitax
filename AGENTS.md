@@ -7,7 +7,7 @@ notation rendering, Web Audio, and app logic.
 ## Commands
 
 ```bash
-npm test                 # full suite (17 files, ~2 min)
+npm test                 # full behaviour/model suite (13 files)
 npm run test:one flash   # a single suite
 npm run serve            # http://localhost:8099 — needed to exercise the service worker
 ```
@@ -42,6 +42,20 @@ fires if the finger moved <12px, so a swipe can be told from a tap.
 and highlight. Don't set `disabled` anywhere else — an earlier bug had several
 call sites disagreeing, and `syncControls()` ran before `run` was assigned so
 nothing locked during a run. Order matters: set `run` first, then sync.
+
+**Notation is rendered by abcjs (vendored, `abcjs-basic-min.js`), not hand-rolled
+SVG.** `renderScore()` translates the cell model to ABC (`barsToAbc`), lets abcjs
+lay it out, then measures each drawn glyph and builds a musical-time→pixel-x
+anchor map (`timeToX`). The timing-feedback lane and playhead are drawn in a
+separate overlay `<svg>` keyed off those measured positions — abcjs spaces notes
+non-linearly, so nothing may assume a constant width per duration. Beaming is
+driven from `beamGroups()` via ABC whitespace (flush = beamed, space = broken),
+because abcjs's own auto-beaming crosses the bar midpoint. abcjs loads from its
+own `<script>` and is cached by the service worker; `renderScore` no-ops
+gracefully if it (or `getBBox`) is unavailable, so the app logic still runs.
+
+Much of the old hand-rolled SVG builder code (`renderBar`, `notehead`, rest
+glyphs, `C_INK`/`C_STAFF` constants) is now dead but left in place for reference.
 
 ## Environment constraints — these caused real, shipped bugs
 
@@ -116,18 +130,24 @@ Don't tighten any of this to make scores look more discriminating; that's the
 opposite of the point. `tests/reading.js` guards both directions: an ordinary tap
 on a correct read must be green, and mashing a steady stream must not be.
 
-Grading tests must tap **what is actually on the page** (read the notehead `cx`
-positions out of the SVG) and, when two runs are compared, seed `Math.random` so
-both get the same bar. Blindly tapping four quarters used to be a fine
-approximation; now every tap that lands on a rest counts as an extra and the
-"perfect player" silently scores 60%.
+Grading tests must tap **what is actually on the page**, but abcjs owns layout
+now and jsdom doesn't load it, so they read the sounding onsets from the model
+hook `window.__onsets` (units) that `showPattern` publishes — not notehead `cx`
+out of the SVG. `window.__abc` exposes the pattern's ABC as a stable fingerprint
+for variety/history tests. When two runs are compared, seed `Math.random` so both
+get the same bar. Blindly tapping four quarters used to be a fine approximation;
+now every tap that lands on a rest counts as an extra and the "perfect player"
+silently scores 60%.
 
 ## Testing: what the suite cannot see
 
-The tests use **jsdom, which has no rendering engine**. It computes no layout and
-paints nothing. Every bug that reached the user lived in exactly that gap:
-invisible fills, zero-height SVG, and the light host background. Structural
-assertions pass happily while the screen is blank.
+The tests use **jsdom, which has no rendering engine** and does not load abcjs
+(its `<script src>` isn't fetched). It computes no layout and paints nothing, so
+the suite cannot see the notation at all — the pure-rendering suites (contrast,
+layout, vlevels, sustain, preview, crossbar, ties, beamfreq, rests) were removed
+when the renderer moved to abcjs. What remains tests **behaviour and the model**:
+lifecycle, grading, controls, variety, persistence, the PWA contract. Assert on
+model hooks and DOM state, never on drawn glyphs.
 
 If you have a real browser available, **use Playwright** — it would have caught
 all three. It isn't installed here because the browser binaries come from a CDN

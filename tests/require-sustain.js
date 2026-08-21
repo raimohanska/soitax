@@ -19,12 +19,10 @@ async function trial(holdFactor, win, doc){
   const pad=()=>doc.getElementById('pad');
   const pev=(t)=>pad().dispatchEvent(new win.MouseEvent(t,{bubbles:true,cancelable:true}));
 
-  const U=12,spu=(60/58)/U, PAD_L=16, SPAN=320-16-20, BAR=48;
+  const U=12,spu=(60/58)/U, BAR=48;
 
-  // Read the pattern from the SVG: noteheads only (no rests)
-  const svg=doc.querySelector('#score svg');
-  const heads=[...svg.querySelectorAll('ellipse')].map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b);
-  const onsets=heads.map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
+  // notated onsets in units, straight from the model (abcjs owns rendering)
+  const onsets=(win.__onsets||[]).slice();
 
   pev('pointerdown');pev('pointerup');
   await new Promise(r=>setTimeout(r,50));

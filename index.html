@@ -889,6 +889,11 @@ function styleAbc(){
 
 function renderScore(bars, markMap){
   lastMarks = markMap || null;
+  // Notation is a best-effort layer. If abcjs isn't present (it loads from a
+  // separate <script>, which a headless harness may not fetch) or the SVG engine
+  // can't measure glyphs (jsdom has no getBBox), skip drawing rather than throw —
+  // grading, controls and the audio clock must keep working regardless.
+  if(!window.ABCJS){ noteGeom = []; anchors = []; return; }
   styleAbc();
 
   // 1. Let abcjs lay out the notation.
@@ -906,18 +911,20 @@ function renderScore(bars, markMap){
   // fills a row then breaks. One bar per row on a phone reads best, so bias the
   // preferred count low and let the width raise it on a wider screen.
   const perRow = Math.max(1, Math.min(bars.length, Math.floor((w - 16) / 220)));
-  window.ABCJS.renderAbc(host, abc, {
-    add_classes: true,
-    staffwidth: w - 16,
-    wrap: { minSpacing: 1.6, maxSpacing: 2.7, preferredMeasuresPerLine: perRow },
-    paddingleft: 4, paddingright: 4, paddingtop: 2, paddingbottom: 2,
-    scale: 1,
-    responsive: undefined,
-  });
+  try{
+    window.ABCJS.renderAbc(host, abc, {
+      add_classes: true,
+      staffwidth: w - 16,
+      wrap: { minSpacing: 1.6, maxSpacing: 2.7, preferredMeasuresPerLine: perRow },
+      paddingleft: 4, paddingright: 4, paddingtop: 2, paddingbottom: 2,
+      scale: 1,
+      responsive: undefined,
+    });
+  }catch(e){ noteGeom = []; anchors = []; return; }
   const abcSvg = host.querySelector('svg');
-  if(!abcSvg){ return; }
+  if(!abcSvg || typeof abcSvg.getBBox !== 'function'){ noteGeom = []; anchors = []; return; }
   scoreDims.w = w;
-  scoreDims.h = abcSvg.getBBox ? Math.ceil(abcSvg.getBBox().height) :
+  scoreDims.h = Math.ceil(abcSvg.getBBox().height) ||
                 parseFloat(abcSvg.getAttribute('height')) || 120;
   // pin an explicit height so the iOS zero-height trap can't fire
   const hh = parseFloat(abcSvg.getAttribute('height')) || scoreDims.h;
@@ -1700,6 +1707,13 @@ function showPattern(b){
   passed = false;
   promoEl.classList.remove('on');
   renderScore(bars, null);
+  // Test hook: the sounding onsets in UNITS, straight from the model. Grading
+  // tests used to reverse-map notehead x out of the old hand-rolled SVG; abcjs
+  // owns layout now, so they read the timing here instead of the geometry.
+  window.__onsets = soundingNotes().map(n => n.abs);
+  // A stable fingerprint of the current pattern, model-derived (not rendered),
+  // for the variety test. Includes onset/dur/rest/tie so distinct rhythms differ.
+  window.__abc = barsToAbc(bars);
   paintPad('idle','Begin','tap to start · swipe for another');
   syncControls();
 }

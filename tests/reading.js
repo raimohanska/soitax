@@ -32,11 +32,9 @@ async function play(w, d, {holdMs=150, jitterMs=0, spam=false}={}){
   const up=()=>pad.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true,clientX:150,clientY:700}));
   const bpm=Number(G('bpmVal').textContent), U=12, spu=(60/bpm)/U;
 
-  // recover the notated onsets from the rendered noteheads
-  const svg=d.querySelector('#score svg');
-  const PAD_L=16, SPAN=320-16-20, BAR=48;
-  const heads=[...svg.querySelectorAll('ellipse')].map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b);
-  const notated=heads.map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
+  // the notated onsets in units, straight from the model (abcjs owns rendering)
+  const BAR=48;
+  const notated = (w.__onsets||[]).slice();
   const onsets = spam ? [0,6,12,18,24,30,36,42] : notated;
 
   down(); up();                                   // begin

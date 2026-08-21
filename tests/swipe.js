@@ -24,9 +24,8 @@ function pt(target,type,x,y){
   target.dispatchEvent(e);
 }
 function fingerprint(){
-  const svg=d.querySelector('#score svg');
-  return [...svg.querySelectorAll('ellipse,path,line')]
-    .map(e=>(e.getAttribute('cx')||e.getAttribute('x1')||e.getAttribute('d')||'').slice(0,20)).join('|');
+  // model-derived (abcjs owns rendering, not loaded headless)
+  return w.__abc || '';
 }
 
 (async()=>{

@@ -18,12 +18,10 @@ const dom=new JSDOM(html.replace('<script>','<script>'+stub),{runScripts:'danger
 const w=dom.window,d=w.document;
 const click=el=>el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
 
-// fingerprint a pattern by the x positions + fill of every glyph
+// fingerprint a pattern from the model (abcjs owns rendering now, and the
+// headless harness doesn't load it), so distinct rhythms produce distinct strings
 function fingerprint(){
-  const svg=d.querySelector('#score svg');
-  return [...svg.querySelectorAll('ellipse,circle,path,line')]
-    .map(e=>e.tagName+':'+(e.getAttribute('cx')||e.getAttribute('x1')||e.getAttribute('d')||'').slice(0,24))
-    .join('|');
+  return w.__abc || '';
 }
 setTimeout(()=>{
   let fails=0;
@@ -42,7 +40,7 @@ setTimeout(()=>{
   for(let lv=1;lv<=11;lv++){
     for(let i=0;i<100;i++){
       click(d.getElementById('nextBtn'));
-      const heads=d.querySelectorAll('#score svg ellipse').length;
+      const heads=(w.__onsets||[]).length;
       if(heads===0) empties++;
       if(heads===1) thin++;
     }

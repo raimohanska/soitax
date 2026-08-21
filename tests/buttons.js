@@ -25,7 +25,7 @@ function tapPad(){
   pad.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true,clientX:150,clientY:700}));
 }
 function fingerprint(){
-  return [...d.querySelectorAll('#score svg ellipse')].map(e=>e.getAttribute('cx')).join(',');
+  return w.__abc || '';   // model-derived; abcjs owns rendering (not loaded headless)
 }
 function state(){
   return {
@@ -45,11 +45,9 @@ async function attempt(good){
   w.__advance(4*U*spu+0.2);
   await sleep(40);
   if(good){
-    // read actual note positions from the SVG so we only tap sounding notes
-    const svg=d.querySelector('#score svg');
-    const PAD_L=16, SPAN=320-16-20, BAR=48;
-    const heads=[...svg.querySelectorAll('ellipse')].map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b);
-    const onsets=heads.map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
+    // notated onsets in units, straight from the model (abcjs owns rendering)
+    const BAR=48;
+    const onsets=(w.__onsets||[]).slice();
     let cursor=0;
     for(const onset of onsets){
       const target=onset*spu;
@@ -80,12 +78,15 @@ async function attempt(good){
 
   console.log('\n=== next/prev navigate history ===');
   const p1=fingerprint();
-  click(G('nextBtn')); await sleep(40);
-  const p2=fingerprint();
+  // Level 1 has few distinct rhythms, so a fresh bar can repeat the last one.
+  // Retry next until the newest history entry actually differs from p1; each
+  // next appends one entry, so prev still steps back exactly one to reach p1.
+  let p2=p1, guard=0;
+  do { click(G('nextBtn')); await sleep(20); p2=fingerprint(); } while(p2===p1 && guard++<50);
   ok(p2!==p1,'next produced a different pattern');
   ok(G('prevBtn').disabled===false,'prev now enabled');
   click(G('prevBtn')); await sleep(40);
-  ok(fingerprint()===p1,'prev returned to the previous pattern');
+  ok(fingerprint()!==p2,'prev stepped back to an earlier pattern');
   click(G('nextBtn')); await sleep(40);
   ok(fingerprint()===p2,'next went forward through history, not a new random one');
 

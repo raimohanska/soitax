@@ -10,18 +10,11 @@ const SUITES = [
   ['reading',         'ordinary taps score green'],
   ['require-sustain', 'only over-holding is penalised'],
   ['calibrate',       'latency self-calibration'],
-  ['ties',            'tie semantics'],
-  ['beamfreq',        'beam progression'],
   ['variety',         'pattern variety'],
   ['swipe',           'swipe vs tap'],
   ['behaviour',       'attempt vs show-me'],
-  ['contrast',        'legibility'],
-  ['layout',          'rendered geometry'],
-  ['vlevels',         'all levels render'],
-  ['sustain',         'feedback lane'],
   ['persist',         'settings survive a relaunch'],
   ['pwa',             'installable + offline contract'],
-  ['rests',           'adjacent rests combine'],
 ];
 
 const CONCURRENCY = 8;

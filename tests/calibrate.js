@@ -55,11 +55,7 @@ async function perfectAttempt(){
   // Play the notes that are actually on the page. Blindly tapping four quarters
   // is not an accurate player — level 1 bars contain rests, and every tap that
   // lands on one now counts against the score as an extra.
-  const svg=doc.querySelector('#score svg');
-  const PAD_L=16, SPAN=320-16-20;
-  const onsets=[...svg.querySelectorAll('ellipse')]
-    .map(e=>+e.getAttribute('cx')).sort((a,b)=>a-b)
-    .map(x=>Math.round(((x-PAD_L)/SPAN)*BAR));
+  const onsets=(win.__onsets||[]).slice();
 
   win.__advance(0.5);
   pev('pointerdown'); pev('pointerup');          // begin

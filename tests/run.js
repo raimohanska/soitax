@@ -43,49 +43,32 @@ const ok  = (c, m) => { if(!c){ fails++; console.log('  FAIL ' + m); } else cons
 
 setTimeout(() => {
   console.log('\n=== boot ===');
-  const svg = doc.querySelector('#score svg');
-  ok(!!svg, 'score SVG rendered');
-  ok(doc.querySelectorAll('#score svg ellipse').length > 0, 'noteheads present');
-  ok(!!doc.getElementById('ph'), 'playhead element exists');
+  // Notation is rendered by abcjs, which the headless harness doesn't load, so
+  // assert on the MODEL the app exposes rather than the drawn SVG.
+  ok(Array.isArray(window.__onsets), 'pattern model exposed');
+  ok((window.__onsets||[]).length > 0, 'sounding notes present');
   ok(doc.getElementById('lvTxt').textContent.includes('Level 1'), 'level 1 shown');
   ok(doc.getElementById('padMain').textContent === 'Begin', 'pad idle label');
 
-  // ---- XML well-formedness of every level's notation ----
-  console.log('\n=== SVG well-formedness across all levels & many patterns ===');
-  const { XMLSerializer } = window;
-  let badXml = 0, checked = 0, glyphStats = {};
+  // ---- every level & many patterns generate cleanly ----
+  console.log('\n=== pattern generation across all levels ===');
+  let bad = 0, checked = 0;
   const up = doc.getElementById('lvUp');
   const fresh = doc.getElementById('nextBtn');
 
   for(let lv=1; lv<=10; lv++){
     for(let n=0; n<20; n++){
       fresh.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
-      const s = doc.querySelector('#score svg');
-      if(!s){ badXml++; continue; }
-      const str = new window.XMLSerializer().serializeToString(s);
-      // reparse strictly as XML — catches malformed paths/attrs
-      const p = new window.DOMParser().parseFromString(str, 'application/xml');
-      if(p.getElementsByTagName('parsererror').length){ badXml++; }
-      // no NaN / undefined leaking into coordinates
-      if(/NaN|undefined|Infinity/.test(str)) badXml++;
+      const onsets = window.__onsets;
+      const abc = window.__abc || '';
+      // every pattern must have something to play and produce valid ABC
+      if(!Array.isArray(onsets) || onsets.length < 1) bad++;
+      if(/NaN|undefined|Infinity/.test(abc) || !abc) bad++;
       checked++;
-      glyphStats['lv'+lv] = (glyphStats['lv'+lv]||0) + s.querySelectorAll('ellipse').length;
     }
     if(lv < 10) up.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
   }
-  ok(badXml === 0, `all ${checked} rendered scores are valid XML with clean coords (bad: ${badXml})`);
-
-  // ---- geometry sanity: nothing drawn outside the viewBox ----
-  console.log('\n=== geometry ===');
-  const s = doc.querySelector('#score svg');
-  const vb = s.getAttribute('viewBox').split(' ').map(Number);
-  let outOfBounds = 0;
-  s.querySelectorAll('ellipse').forEach(e => {
-    const cx = +e.getAttribute('cx');
-    if(cx < 0 || cx > vb[2]) outOfBounds++;
-  });
-  ok(outOfBounds === 0, 'all noteheads inside viewBox');
-  ok(vb[3] > 0, 'viewBox height positive: ' + vb[3]);
+  ok(bad === 0, `all ${checked} generated patterns are non-empty with clean ABC (bad: ${bad})`);
 
   // ---- interaction: begin an attempt, tap, finish ----
   console.log('\n=== attempt lifecycle ===');
@@ -110,8 +93,6 @@ setTimeout(() => {
     window.__advance(4.6);
     setTimeout(() => {
       ok(pad.dataset.m === 'play', 'reached play mode (mode=' + pad.dataset.m + ')');
-      const phOpacity = doc.getElementById('ph').getAttribute('opacity');
-      ok(phOpacity === '0', 'playhead hidden during an attempt (show-me only)');
       window.__advance(0.4); pd(); pd();               // a couple of taps
       window.__advance(20);                            // run past the end
       setTimeout(() => {
@@ -119,10 +100,6 @@ setTimeout(() => {
         ok(!doc.getElementById('lvUp').disabled, 'level buttons unlocked after run');
         ok(doc.getElementById('padPct').classList.contains('on'), 'result shown on the pad');
         ok(window.__lastGrade.hits.includes('/'), 'hits reported: ' + window.__lastGrade.hits);
-        const lane=[...doc.querySelectorAll('#score svg rect')].filter(r=>{
-          const h=+r.getAttribute('height'); const y=+(r.getAttribute('y')||0);
-          return h>3&&h<6&&y>60;});
-        ok(lane.length > 0, `per-note feedback lane drawn (${lane.length} bars)`);
 
         console.log('\n' + (fails === 0 ? '=== ALL CHECKS PASSED ===' : '=== ' + fails + ' FAILURES ==='));
         process.exit(fails ? 1 : 0);

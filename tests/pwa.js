@@ -64,13 +64,21 @@ ok(/-apple-system|BlinkMacSystemFont/.test(html),
 ok(/SF Mono|Menlo|Consolas/.test(html),'monospace fallback for the numerals');
 
 console.log('\n=== single-file version still self-contained ===');
-// Nothing the app NEEDS may be an external file: fonts are cosmetic, and the
-// manifest/worker are optional enhancements.
+// Nothing the app NEEDS may be fetched over the NETWORK: fonts are cosmetic, and
+// the manifest/worker are optional enhancements. abcjs is vendored locally and
+// cached by the service worker, so it's a bundled asset, not a network dep.
 const externals=[...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(m=>m[1])
-  .filter(u=>!/^#|^data:/.test(u));
-console.log('  external references:', externals.join(', ') || '(none)');
-const required=externals.filter(u=>!/fonts\.googleapis|fonts\.gstatic|manifest|icon-/.test(u));
-ok(required.length===0, `no required external assets (${required.length} found)`);
+  .filter(u=>!/^#|^data:/.test(u))
+  .filter(u=>/^https?:\/\//.test(u));            // only real off-origin URLs
+console.log('  external URLs:', externals.join(', ') || '(none)');
+// A bare github.com link in the footer is documentation, not a runtime asset.
+const required=externals.filter(u=>
+  !/fonts\.googleapis|fonts\.gstatic|github\.com/.test(u));
+ok(required.length===0, `no required off-origin assets (${required.length} found)`);
+
+// abcjs must be vendored locally (a relative src), never pulled from a CDN.
+const abcSrc=(html.match(/<script[^>]+src="([^"]*abcjs[^"]*)"/)||[])[1];
+ok(!!abcSrc && !/^https?:/.test(abcSrc), 'abcjs is vendored locally, not from a CDN');
 
 console.log('\n' + (fails===0?'=== ALL PASSED ===':`=== ${fails} FAILURES ===`));
 process.exit(fails?1:0);

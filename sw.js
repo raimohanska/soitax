@@ -3,7 +3,7 @@
 // point of installing it to a home screen.
 const CACHE = 'soitax-v1';
 const SHELL = [
-  '.', 'index.html', 'manifest.webmanifest',
+  '.', 'index.html', 'manifest.webmanifest', 'abcjs-basic-min.js',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png',
 ];
 
