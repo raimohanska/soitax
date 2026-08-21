@@ -173,6 +173,13 @@ version out of git without touching the tree instead:
 git show HEAD:index.html > /tmp/base/index.html   # then run the suite against the copy
 ```
 
+## Task list
+
+`TODO.md` is the running backlog. When something worth doing surfaces mid-task —
+a follow-up, a deferred cleanup, an idea that's out of scope right now — add it
+there as a `- [ ]` item rather than losing it. Check items off (`- [x]`) as you
+complete them.
+
 ## Deploying
 
 There is only ever one branch: `main`. Never create, check out, or push to any
