@@ -21,6 +21,7 @@ const SUITES = [
   ['sustain',         'feedback lane'],
   ['persist',         'settings survive a relaunch'],
   ['pwa',             'installable + offline contract'],
+  ['rests',           'adjacent rests combine'],
 ];
 
 const CONCURRENCY = 8;

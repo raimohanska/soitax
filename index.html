@@ -367,6 +367,9 @@ function makeBar(lv){
   // A note or rest that straddles beat 3 hides the bar midpoint. Split it
   // so the eye has a notehead (or rest boundary) to anchor on at beat 3.
   splitMidpointViolations(out);
+  // Two quarter rests in a row are a half rest badly spelled — collapse runs
+  // of adjacent rests into the longest legal single glyph.
+  mergeRests(out);
   return out;
 }
 function makeBars(lv){
@@ -458,6 +461,49 @@ function splitMidpointViolations(bar){
   }
 }
 
+// A reader sees one rest where two adjacent ones say the same thing, so runs of
+// consecutive rests collapse into the longest single glyph that stays metrically
+// honest. Three constraints decide what "legal" means, and all three exist to
+// keep the beat grid visible rather than to save ink:
+//   · a merged rest starts on a multiple of its own duration, so an eighth rest
+//     never begins on the second sixteenth of a beat;
+//   · anything a beat or longer starts on a beat and lasts whole beats — that
+//     rules out dotted rests, which would swallow the beat they run through;
+//   · nothing crosses the bar midpoint, the same rule splitMidpointViolations
+//     enforces for notes. In 4/4 that caps a merge at the half rest: beats 1-2
+//     or beats 3-4, never 2-3.
+// Triplet rests are left alone: their neighbours' beam runs over them (see
+// beamGroups) and merging would break that grouping.
+const MERGE_DURS = [24, 12, 6];        // half, quarter, eighth
+function mergeRests(bar){
+  const MID = U * 2;
+  let i = 0;
+  while(i < bar.length){
+    if(!bar[i].rest || bar[i].trip){ i++; continue; }
+    // extent of this run of plain rests
+    let j = i;
+    while(j+1 < bar.length && bar[j+1].rest && !bar[j+1].trip) j++;
+    const runEnd = bar[j].onset + bar[j].dur;
+    const merged = [];
+    let at = bar[i].onset;
+    while(at < runEnd){
+      let dur = MERGE_DURS.find(d =>
+        d <= runEnd - at &&
+        at % d === 0 &&
+        !(at < MID && at + d > MID));
+      if(!dur){
+        // no legal merge here: keep the original rest that starts at this point
+        const orig = bar.slice(i, j+1).find(n => n.onset === at);
+        dur = orig ? orig.dur : runEnd - at;
+      }
+      merged.push({onset:at, dur, rest:true, trip:false, tie:false});
+      at += dur;
+    }
+    bar.splice(i, j-i+1, ...merged);
+    i += merged.length;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════
    2. BEAMING — the real engraving rule.
    Beams join sub-beat notes only, never cross a beat boundary,
@@ -508,12 +554,19 @@ const C_OK = '#1f8a4c', C_WARN = '#b07d10';   // sustain right / sustain off
 const C_PANEL = '#f7f7f5', C_EDGE = '#e3e3de';
 
 const VW = 320;            // viewBox width; CSS scales it
-const PAD_L = 32, PAD_R = 20;
+const PAD_L = 62, PAD_R = 10;
 const SPAN = VW - PAD_L - PAD_R;
 const BASE = 62;           // staff line y within a row
 const ROW_H = 112;
 const STEM = 30, BEAM_T = 4.6, BEAM_GAP = 6.4;
 const SW = 6.0;            // notehead half-width (stem offset)
+
+// A note is not centred on BASE: the head sits on it but the stem runs 30px
+// up, so the ink of a note column spans BASE-STEM .. BASE+headRadius and its
+// optical centre is well above the line. Rests have no stem, so centring them
+// on BASE leaves them visibly sunk against the notes around them. Everything
+// stemless (rests, the time signature) centres on this axis instead.
+const NOTE_MID = BASE - (STEM - 4.1) / 2;   // ≈ BASE-13
 
 const xAt = u => PAD_L + (u/BAR)*SPAN;
 
@@ -541,40 +594,98 @@ const dotAfter = x =>
   `<circle cx="${x+11.5}" cy="${BASE-2}" r="1.75" fill="${C_INK}"/>`;
 
 /* rests -------------------------------------------------- */
-// quarter rest: the conventional zig-zag with a hooked tail
+
+// Quarter rest: the real engraved glyph, not an approximation. Hand-built
+// zig-zags never looked right — the curve of the tail and the taper of each
+// stroke are what make it read as a rest rather than a squiggle. Outline taken
+// from openclipart.org/detail/93883 (public domain), normalised here to 25px
+// tall and centred on the origin, so the transform below is the only thing
+// that positions it. Do not "tidy" the numbers; they are a traced outline.
+const QREST = `M3.57 -6.15C3.57 -4.56 0.40 -2.18 0.40 0.99C0.40 2.18 2.78 5.75 4.37 7.74
+  C3.57 7.34 2.78 6.94 1.59 6.94C-0.79 6.94 -1.59 8.93 -1.59 10.12
+  C-1.59 10.91 -0.79 11.71 -0.40 12.50C-2.78 10.91 -4.37 9.33 -4.37 7.74
+  C-4.37 3.77 -1.65 5.16 0.33 4.37C-1.65 2.38 -3.57 -0.60 -3.57 -1.79
+  C-3.57 -2.58 -1.19 -5.36 -0.40 -7.34C-0.40 -7.34 -0.40 -8.53 -0.40 -8.53
+  C-0.40 -9.72 -1.19 -11.31 -1.59 -12.50C0.00 -10.52 3.57 -6.94 3.57 -6.15Z`;
+
 function restQuarter(x){
-  // filled zig-zag, plus a light stroke so it carries the same weight as the
-  // other glyphs instead of looking like a hairline squiggle
-  return `<path d="M${x-1.8} ${BASE-14}
-    C ${x+3} ${BASE-10}, ${x+4.2} ${BASE-8.4}, ${x+0.6} ${BASE-4.6}
-    C ${x-3.2} ${BASE-0.8}, ${x-2.6} ${BASE+1.8}, ${x+2.6} ${BASE+4.6}
-    C ${x-1.8} ${BASE+3}, ${x-4} ${BASE+6}, ${x+0.4} ${BASE+12}
-    C ${x-5.2} ${BASE+6.2}, ${x-0.6} ${BASE+2.4}, ${x+1.6} ${BASE+3.4}
-    C ${x-3} ${BASE-0.4}, ${x-2.4} ${BASE-2.8}, ${x+1.6} ${BASE-6}
-    C ${x+4} ${BASE-8.6}, ${x+2.4} ${BASE-10.4}, ${x-1.8} ${BASE-14}Z"
-    fill="${C_INK}" stroke="${C_INK}" stroke-width="0.7"/>`;
+  // the hairline stroke keeps the thin waist of the glyph from disappearing
+  // once the SVG is scaled down to phone width
+  return `<g transform="translate(${x} ${NOTE_MID})"><path d="${QREST}"
+    fill="${C_INK}" stroke="${C_INK}" stroke-width="0.5"
+    stroke-linejoin="round" stroke-linecap="round"/></g>`;
 }
-// eighth rest: hook blob + oblique stem
-function restEighth(x, n){
-  n = n || 1;
-  const top = BASE - 9 - (n-1)*1.5;
-  // heavier stem + bigger hook: the old glyph was too thin to read on a phone
-  let s = `<line x1="${x+3.4}" y1="${top}" x2="${x-2.4}" y2="${BASE+9.5}"
-             stroke="${C_INK}" stroke-width="2.7" stroke-linecap="round"/>`;
-  for(let i=0;i<n;i++){
-    const cy = top + 1.5 + i*6.6;
-    s += `<circle cx="${x-2.2}" cy="${cy}" r="3.5" fill="${C_INK}"/>`
-       + `<path d="M${x-2.2} ${cy-3.4}
-            C ${x+5.2} ${cy-4.6}, ${x+6.8} ${cy+1.2}, ${x+3.8} ${cy+2.6}
-            C ${x+3.6} ${cy-1.4}, ${x+1} ${cy-2.6}, ${x-2.2} ${cy-3.4}Z"
-            fill="${C_INK}"/>`;
-  }
-  return s;
-}
-// half rest sits on the line; whole rest hangs below it
+// eighth and sixteenth rests, same provenance: freesvg.org (public domain),
+// "Rests 8 Eigth" and "Rests 16 Sixteenth". Their source files were each
+// scaled to fill their own page, so the two arrived at nearly identical
+// aspect ratios despite the sixteenth carrying an extra hook — sizing them by
+// height or width would have left the sixteenth with visibly finer strokes.
+// They are scaled here so their STEM WEIGHT matches instead (measured off a
+// raster of each: 24 vs 23 units at a common height), which is what makes them
+// read as one family — 22px for the eighth, and 26.04px for the sixteenth.
+//
+// That 26.04 is then knocked back to 80% (20.83px). Matched stem weight is the
+// right rule for a glyph family in isolation, but a sixteenth rest only ever
+// appears in a bar of sixteenths, where the slot is SPAN/16 wide — the correctly
+// proportioned glyph simply does not fit and collides with its neighbours.
+// Fitting the space wins over matching the family here.
+//
+// The 0.7 stroke in restGlyph is also not decoration: this art has hairline
+// stems that render lighter than the note stem (1.6px), so without it the
+// rests look anaemic beside the notes and the openclipart quarter rest. Note
+// the stroke is NOT scaled with the outline, so shrinking the sixteenth above
+// leaves it slightly bolder in proportion — which happens to buy back some of
+// the weight lost to the smaller size.
+//
+// Orientation is the trap here. The source wraps the outline in
+// matrix(s,0,0,-s,0,0) — a Y flip — which looks like it needs undoing when the
+// raw path data is lifted out. It does not: the data is already stored flipped,
+// so negating y lands the glyph upside down (hook at the bottom, stem rising)
+// and it still reads plausibly enough at a glance to survive review. These
+// coordinates are the right way up; the blob belongs at the TOP, with the stem
+// descending to the lower right.
+const REST8 = `M5.58 -10.51C6.93 -10.49 6.89 -10.46 6.89 -10.46L0.39 11.00 -0.92 11.00 4.18 -5.77C4.18 -5.77
+  3.78 -5.39 3.55 -5.23 3.10 -4.91 2.61 -4.65 2.11 -4.43 1.61 -4.20 1.09 -4.01 0.55 -3.89 -0.09
+  -3.74 -0.74 -3.65 -1.40 -3.63 -2.00 -3.61 -2.62 -3.63 -3.21 -3.76 -3.81 -3.87 -4.41 -3.96 -5.35
+  -4.56 -5.76 -4.81 -6.27 -5.39 -6.53 -5.92 -6.83 -6.60 -6.94 -7.39 -6.87 -8.13 -6.83 -8.63 -6.65
+  -9.14 -6.37 -9.56 -6.08 -9.99 -5.67 -10.37 -5.22 -10.61 -4.80 -10.85 -4.32 -10.96 -3.85 -10.99
+  -3.51 -11.02 -3.16 -10.95 -2.83 -10.87 -2.43 -10.77 -2.11 -10.61 -1.77 -10.37 -1.56 -10.22 -1.32
+  -10.06 -1.18 -9.85 -1.00 -9.61 -0.84 -9.35 -0.73 -9.08 -0.62 -8.84 -0.55 -8.58 -0.50 -8.32 -0.45
+  -8.00 -0.48 -7.68 -0.50 -7.36 -0.53 -7.06 -0.63 -6.77 -0.75 -6.50 -0.90 -6.18 -1.09 -5.95 -1.33
+  -5.70 -1.55 -5.47 -2.00 -5.03 -2.00 -5.03L-1.42 -4.82 -0.13 -4.99 1.22 -5.42 2.49 -6.02 3.89
+  -7.07 4.65 -7.95 5.46 -9.88 5.58 -10.51Z`;
+
+const REST16 = `M6.46 -9.49L5.54 -9.45C5.54 -9.45 5.02 -7.80 4.49 -7.14 4.18 -6.75 3.32 -6.26 3.32 -6.26L2.26
+  -5.76 1.14 -5.40C1.14 -5.40 0.42 -5.22 0.06 -5.26 -0.11 -5.28 -0.42 -5.43 -0.42 -5.43 -0.24 -5.62
+  -0.05 -5.80 0.14 -5.99 0.34 -6.20 0.50 -6.39 0.62 -6.66 0.72 -6.89 0.80 -7.13 0.82 -7.38 0.85
+  -7.65 0.86 -7.91 0.82 -8.18 0.79 -8.40 0.73 -8.62 0.64 -8.82 0.54 -9.04 0.41 -9.26 0.26 -9.46
+  0.14 -9.63 -0.06 -9.77 -0.23 -9.90 -0.52 -10.09 -0.78 -10.22 -1.12 -10.30 -1.39 -10.38 -1.69
+  -10.43 -1.97 -10.41 -2.36 -10.38 -2.77 -10.29 -3.11 -10.10 -3.49 -9.89 -3.83 -9.58 -4.07 -9.22
+  -4.30 -8.86 -4.46 -8.44 -4.50 -8.02 -4.55 -7.40 -4.46 -6.74 -4.20 -6.18 -3.99 -5.73 -3.56 -5.26
+  -3.22 -5.04 -2.44 -4.54 -1.94 -4.46 -1.44 -4.38 -0.94 -4.26 -0.42 -4.25 0.08 -4.26 0.62 -4.28
+  1.17 -4.35 1.70 -4.48 2.15 -4.58 2.58 -4.74 3.01 -4.93 3.42 -5.11 3.96 -5.46 4.34 -5.72 4.53
+  -5.86 3.22 -1.38 3.22 -1.38L2.54 -0.67 1.38 0.20 0.32 0.70 -0.81 1.06C-0.81 1.06 -1.53 1.23 -1.89
+  1.20 -2.06 1.18 -2.37 1.02 -2.37 1.02 -2.18 0.84 -1.99 0.66 -1.81 0.46 -1.61 0.26 -1.45 0.06
+  -1.33 -0.20 -1.22 -0.42 -1.14 -0.67 -1.12 -0.92 -1.10 -1.18 -1.08 -1.46 -1.12 -1.72 -1.15 -1.94
+  -1.22 -2.15 -1.30 -2.35 -1.40 -2.58 -1.54 -2.80 -1.68 -3.00 -1.80 -3.17 -2.01 -3.31 -2.18 -3.43
+  -2.46 -3.62 -2.73 -3.77 -3.06 -3.85 -3.34 -3.92 -3.63 -3.98 -3.91 -3.95 -4.30 -3.93 -4.70 -3.83
+  -5.06 -3.63 -5.43 -3.42 -5.78 -3.12 -6.02 -2.76 -6.25 -2.40 -6.39 -1.98 -6.44 -1.56 -6.50 -0.94
+  -6.41 -0.28 -6.14 0.28 -5.94 0.74 -5.50 1.21 -5.17 1.42 -4.38 1.92 -3.88 1.99 -3.38 2.09 -2.88
+  2.19 -2.37 2.21 -1.86 2.19 -1.32 2.18 -0.78 2.10 -0.24 1.98 0.21 1.88 0.65 1.72 1.06 1.53 1.48
+  1.34 2.06 1.14 2.43 0.87 2.54 0.70 0.78 6.72 -0.15 10.33 0.48 10.42 0.44 10.45 0.92 10.38 1.90
+  7.41 5.44 -5.43 6.46 -9.49Z`;
+
+const restGlyph = (x, d) =>
+  `<g transform="translate(${x} ${NOTE_MID})"><path d="${d}" fill="${C_INK}"
+    stroke="${C_INK}" stroke-width="0.7" stroke-linejoin="round" stroke-linecap="round"/></g>`;
+
+const restEighth    = x => restGlyph(x, REST8);
+const restSixteenth = x => restGlyph(x, REST16);
+// half rest: a filled bar sitting on its ledger, the pair centred on NOTE_MID
 const restHalf = x =>
-  `<rect x="${x-5}" y="${BASE-6.5}" width="10" height="4.6" fill="${C_INK}"/>
-   <line x1="${x-8}" y1="${BASE-1.9}" x2="${x+8}" y2="${BASE-1.9}" stroke="${C_INK}" stroke-width="1.1"/>`;
+  `<rect x="${x-5}" y="${NOTE_MID-2.85}" width="10" height="4.6" fill="${C_INK}"/>
+   <line x1="${x-8}" y1="${NOTE_MID+1.75}" x2="${x+8}" y2="${NOTE_MID+1.75}"
+     stroke="${C_INK}" stroke-width="1.1"/>`;
 
 function restFor(x, dur){
   if(dur >= 24) return restHalf(x);
@@ -582,8 +693,8 @@ function restFor(x, dur){
   // dur=4 is a triplet-eighth rest: an eighth slot inside a triplet, so it
   // gets an eighth glyph (one hook), not the sixteenth glyph the fallthrough
   // would give it.
-  if(dur >= 6 || dur === 4)  return restEighth(x, 1);
-  return restEighth(x, 2);
+  if(dur >= 6 || dur === 4)  return restEighth(x);
+  return restSixteenth(x);
 }
 
 /* render one bar into an SVG group ----------------------- */
@@ -592,16 +703,20 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
   let s = `<g transform="translate(0 ${y0})">`;
 
   // closing tick (barline)
-  s += `<line x1="${VW-PAD_R+10}" y1="${BASE-14}" x2="${VW-PAD_R+10}" y2="${BASE+14}"
+  s += `<line x1="${VW-PAD_R-6}" y1="${BASE-STEM-8}" x2="${VW-PAD_R-6}" y2="${BASE+12}"
           stroke="${C_STAFF}" stroke-width="1"/>`;
 
-  // 4/4 time signature on the first bar
+  // 4/4 time signature on the first bar, centred on the same axis as the rests
   if(rowIdx === 0){
-    const tsX = PAD_L - 16;
-    s += `<text x="${tsX}" y="${BASE - 7}" fill="${C_INK}" font-size="14"
-            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">4</text>`;
-    s += `<text x="${tsX}" y="${BASE + 7}" fill="${C_INK}" font-size="14"
-            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">4</text>`;
+    const tsX = PAD_L - 32, TS = 14, CAP = TS * 0.71;   // digits have no descender
+    const GAP = 3;                                      // leading between the digits
+    // The pair spans 2*CAP+GAP and is centred on NOTE_MID; each baseline sits at
+    // the foot of its own digit. Without GAP the two glyphs are exactly flush,
+    // which reads as one blob. dominant-baseline is avoided on purpose — WebKit
+    // has rendered it inconsistently and jsdom cannot measure it at all.
+    const ts = (n, base) => `<text x="${tsX}" y="${base}" fill="${C_INK}" font-size="${TS}"
+            font-family="Inter,sans-serif" font-weight="600" text-anchor="middle">${n}</text>`;
+    s += ts(4, NOTE_MID - GAP/2) + ts(4, NOTE_MID + CAP + GAP/2);
   }
 
   const groups = beamGroups(bar);
@@ -660,7 +775,7 @@ function renderBar(bar, rowIdx, idBase, markMap, tieIn){
     } else {
       // tie continues over the bar line: draw the half that belongs to this bar,
       // running out past the barline the way a broken tie is engraved
-      s += arc(x1, VW - PAD_R + 14);
+      s += arc(x1, VW - PAD_R - 2);
     }
   });
   // ...and the incoming half, if the previous bar tied into this one
