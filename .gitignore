@@ -1,3 +1,7 @@
 node_modules/
 package-lock.json
 tests/*.png
+
+# opencode's local auth/session state, if it ever lands under the config bind.
+.devcontainer/opencode/auth.json
+

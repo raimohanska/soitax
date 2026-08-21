@@ -1,0 +1,40 @@
+# Devcontainer stack for running coding agents against Soitax.
+#
+# Soitax has no backing services (it's one static HTML file), so this is a
+# single container. The compose file exists — rather than a plain image ref in
+# devcontainer.json — only to declare the named volumes and config binds that
+# keep opencode's state and node_modules out of the host tree.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sleep infinity
+    init: true
+    environment:
+      TZ: Europe/Helsinki
+    volumes:
+      - ..:/workspaces/soitax:cached
+      # Keep test deps' node_modules inside the container so host and container
+      # don't fight over them (and native bits stay Linux-built).
+      - test_node_modules:/workspaces/soitax/tests/node_modules
+      # opencode's config. Container-local and gitignored, so the container can
+      # point at its own model providers without touching the host's
+      # ~/.config/opencode. Kept in the repo rather than a volume so it survives
+      # rebuilds and stays editable from the host. Holds no credentials.
+      - ./opencode:/home/pwuser/.config/opencode:cached
+      # opencode's auth + session state. Named volume, not a host bind: it holds
+      # a live SQLite db with a WAL that must not be shared with the host's
+      # opencode. Survives rebuilds, so you log in once.
+      - opencode_data:/home/pwuser/.local/share/opencode
+      - ${HOME}/.gitconfig:/home/pwuser/.gitconfig:cached
+      - ${HOME}/.ssh:/home/pwuser/.ssh:ro
+    ports:
+      # The dev server (npm run serve) — needed to exercise the service worker
+      # and to point Playwright at a real origin.
+      - "8099:8099"
+
+volumes:
+  test_node_modules:
+  opencode_data:
