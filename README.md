@@ -21,9 +21,6 @@ wrong, because note length is half of what the notation is telling you.
   glyphs, dotted notes, triplets, and ties — including ties across the bar line.
 - **Feedback lane** under each staff showing, per note, how far off your onset
   was and how long you actually held it against the written value.
-- **Latency self-calibration.** Phone audio output lags by ~100 ms and browsers
-  mostly won't tell you by how much, which makes an accurate player look
-  consistently late. It measures your median bias and corrects for it.
 - **Silent practice.** The page flashes on each beat, accented on beat one, so
   you can practise with the sound off and still keep time.
 

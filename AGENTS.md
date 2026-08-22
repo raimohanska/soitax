@@ -77,10 +77,10 @@ light surface and ignored our page background, so white-on-dark notation was
 invisible. `#score` therefore carries **its own opaque background panel** (set in
 `styleAbc`). Keep that.
 
-**Mobile audio output lags ~100ms and browsers under-report it.** iOS gives no
-`outputLatency`, so an accurate player looks consistently late. `calMs` is a
-learned offset: the median signed error, pooled across attempts (a sparse bar may
-only have one or two notes, which must not stall calibration). Persisted.
+**Mobile audio output can lag substantially.** Grading deliberately applies no
+latency correction: neither browser-reported output latency nor learned
+calibration. Do not add either without a reliable way to distinguish equipment
+latency from the player's own timing and the currently selected audio route.
 
 ## Notation rules worth not breaking
 

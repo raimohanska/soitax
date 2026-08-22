@@ -1114,11 +1114,9 @@ function clearResult(){
 }
 
 let level = 1, bars = [], run = null, taps = [], launching = false;
-let calMs = 0;                 // learned output-latency compensation
 let hist = [], histIdx = -1;   // pattern history for prev/next
 let userBpm = 0;               // 0 = follow the level default
 let silent = false;            // silent practice: flashes only, no audio
-let biasBuf = [];              // recent timing errors, pooled across attempts
 let passed = false;            // did the last attempt clear the bar?
 let streak = 0;                // consecutive clean runs at this level
 let promoSnoozedAt = 0;        // streak value when the suggestion was dismissed
@@ -1384,15 +1382,9 @@ const ONSET_WINDOW_MIN   = 0.24;  // ...but never tighter than this, in seconds
 const GREEN_AT = 75, AMBER_AT = 50;
 
 function grade(r){
-  const a = ctx();
-  // Two corrections, because a consistent lateness is equipment, not the player:
-  //  1. whatever the browser admits to (iOS usually reports almost nothing)
-  //  2. a learned offset built from the bias measured in previous attempts
-  const lat = a.outputLatency || a.baseLatency || 0;
-  const cal = calMs/1000;
   const got = taps.map(t => ({
-    down: t.down - lat - cal,
-    up: (t.up === null ? r.end : t.up) - lat - cal,
+    down: t.down,
+    up: t.up === null ? r.end : t.up,
   }));
   const beat = 60/tempo();
   // Reading is the skill being trained, not millisecond precision. The window is
@@ -1485,28 +1477,13 @@ function grade(r){
   padPct.classList.add('on', tier);
 
   // Exposed for the test suite, which still needs the numbers behind the
-  // single percentage on screen (calibration convergence, sustain stats, …).
+  // single percentage on screen (onset and sustain stats).
   window.__lastGrade = {
     pct, hits: onsetHits + '/' + total, sustain: sustainOk + '/' + total,
-    spread, bias, extra, cal: Math.round(calMs),
+    spread, bias, extra,
   };
 
   renderScore(bars, marks);      // draws the timing/sustain lane under each staff
-
-  // ---- learn the latency offset ------------------------------------------
-  // A steady lateness across every note is the audio pipeline, not the player,
-  // so fold the median bias into the calibration and stop punishing them for it.
-  // Samples accumulate ACROSS attempts: a sparse bar may only contain one or two
-  // notes, which shouldn't stall calibration.
-  biasBuf.push(...signed);
-  if(biasBuf.length > 24) biasBuf = biasBuf.slice(-24);
-  if(biasBuf.length >= 3){
-    const sorted = [...biasBuf].sort((x,y) => x-y);
-    const median = sorted[Math.floor(sorted.length/2)];
-    calMs = Math.max(-350, Math.min(350, calMs + median*1000*0.7));
-    biasBuf = [];                     // applied, so don't count it twice
-    save();
-  }
 
   // ---- make "next" the obvious move once they've got it -------------------
   // Tied to the green threshold on purpose, so the colour is not decorative:
@@ -1596,20 +1573,19 @@ async function load(){
         if(legacyVersion === 1 && savedLevel >= 4) savedLevel = savedLevel <= 5 ? 3 : savedLevel - 1;
         level = Math.min(MAX_LEVEL, Math.max(1, savedLevel));
       }
-      if(typeof v.calMs === 'number') calMs = Math.max(-350, Math.min(350, v.calMs));
       if(Number.isInteger(v.streak)) streak = Math.max(0, v.streak);
       if(Number.isInteger(v.userBpm)) userBpm = v.userBpm ? Math.max(BPM_MIN, Math.min(BPM_MAX, v.userBpm)) : 0;
       if(typeof v.silent === 'boolean') silent = v.silent;
       // Commit a migrated legacy value under the current key immediately.
       // Otherwise every refresh reads the old key and shifts the level again.
       if(legacyVersion < 4){
-        await store.set(KEY, JSON.stringify({level, calMs, streak, userBpm, silent}), false);
+        await store.set(KEY, JSON.stringify({level, streak, userBpm, silent}), false);
       }
     }
   }catch(e){}
 }
 const save = () => {
-  try{ store.set(KEY, JSON.stringify({level, calMs, streak, userBpm, silent}), false); }catch(e){}
+  try{ store.set(KEY, JSON.stringify({level, streak, userBpm, silent}), false); }catch(e){}
 };
 
 function refreshLevel(){

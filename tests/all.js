@@ -9,7 +9,6 @@ const SUITES = [
   ['slack',           'reading-focused grading'],
   ['reading',         'ordinary taps score green'],
   ['require-sustain', 'only over-holding is penalised'],
-  ['calibrate',       'latency self-calibration'],
   ['variety',         'pattern variety'],
   ['repeat',          'no repeated patterns'],
   ['swipe',           'swipe vs tap'],

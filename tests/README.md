@@ -30,7 +30,6 @@ ABC, a stable fingerprint) that `showPattern` publishes.
 | `slack.js` | A correct read with sloppy timing passes; a wrong read still fails |
 | `reading.js` | An ordinary tap on a correct read scores green; mashing does not |
 | `require-sustain.js` | Sustain is genuinely required — same onsets, stabbed holds |
-| `calibrate.js` | Latency self-calibration converges on a hidden output delay |
 | `variety.js` | Every level yields ≥8 distinct patterns; none empty |
 | `swipe.js` | Swipe ≠ tap: neither gesture triggers the other |
 | `behaviour.js` | Attempt mode plays no reference notes; Show me does |

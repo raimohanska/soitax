@@ -59,7 +59,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
      'silent mode survived the relaunch');
 
   console.log('\n=== the rest of the state round-trips too ===');
-  const w3=boot(JSON.stringify({level:4,calMs:120,streak:2,userBpm:96,silent:false}));
+  const w3=boot(JSON.stringify({level:4,streak:2,userBpm:96,silent:false}));
   const d3=w3.document;
   await sleep(150);
   console.log('  level:',d3.getElementById('lvTxt').textContent.trim(),
@@ -69,7 +69,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   ok(/sound on/i.test(d3.getElementById('silent').textContent),'silent:false restored as sound on');
 
   console.log('\n=== migration is committed and does not repeat on refresh ===');
-  const w5=boot(JSON.stringify({level:6,calMs:0,streak:0,userBpm:0,silent:false}),'soitax-v3');
+  const w5=boot(JSON.stringify({level:6,streak:0,userBpm:0,silent:false}),'soitax-v3');
   await sleep(150);
   ok(/Level 7/.test(w5.document.getElementById('lvTxt').textContent),'old level 6 migrates to new level 7');
   const migrated=w5.localStorage.getItem('soitax-v4');
